@@ -1,0 +1,178 @@
+---
+title: "Simulation study exploring exposure distribution changes"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    theme: cosmo
+    toc_depth: 2
+---
+
+```{r lib, warning = F, message = F, echo = F}
+library(dplyr)
+library(reshape2)
+library(knitr)
+library(ggplot2)
+library(RColorBrewer)
+library(fda)
+library(fda.usc)
+library(truncnorm)
+
+opts_chunk$set(message = F, fig.align = "center", warning = F, echo = F)
+
+```
+
+Suppose our standard day of personal exposures looks as below:
+
+```{r, fig.cap = "Histogram of baseline low exposures"}
+N <- 1000
+x1 <- rlnorm(N)
+hist(x1, xlab = "PM", main = "")
+```
+
+
+# Possible distribution changes in exposures
+
+
+
+```{r}
+plotx <- function(x1, x2) {
+  
+  xdat <- data.frame(x1, x2)
+  mx <- melt(xdat)
+  labs1 <- c("Low exposures", "High exposures")
+  mx$variable <- factor(mx$variable, labels = labs1)
+  cols1 <- c("lightsteelblue", "darksalmon")
+  ggplot(mx, aes(x = value, fill = variable)) + geom_density(alpha = 0.3) + 
+    scale_fill_manual(name = "", values = cols1) + xlab("PM exposure") + theme_bw()  
+  
+  
+}
+
+
+plotq <- function(x1, x2, na) {
+  argvals1 <- seq(0.05, 0.95, length = na) 
+
+  q1 <- quantile(x1, probs = argvals1)
+  q2 <- quantile(x2, probs = argvals1)
+
+  mq <- melt(data.frame(q1, q2, argvals1), id.vars = "argvals1")
+
+  
+  cols1 <- c("lightsteelblue", "darksalmon")
+  
+  labs1 <- c("Low exposures", "High exposures")
+  mq$variable <- factor(mq$variable, labels = labs1)
+
+  ggplot(mq, aes(x = argvals1, y = value, color = variable)) + geom_point() +
+  
+    scale_color_manual(name = "", values = cols1) + theme_bw() +  
+  
+    xlab("Quantile") + ylab("Concentration")
+}
+```
+
+## Exposure shift, where all people have the same increase in exposure"
+
+```{r}
+
+x2 <- x1 + 1
+plotx(x1, x2)
+plotq(x1, x2, 20)
+
+```
+
+
+
+## Changes in highest exposure
+
+This could occur on a bad weather day if people who spent time outdoors (e.g. for work) get the brunt of the exposure.  People indoors don't have appreciable changes in exposure.
+
+
+```{r}
+
+x2 <- x1 + x1 * pnorm(x1, mean = 5, sd = 2)
+
+plotx(x1, x2)
+plotq(x1, x2, 20)
+```
+
+
+## Changes in the lowest exposures
+
+This could occur on a nice day, when pollution isn't higher, but the people who don't normally go outdoors spend time outside.
+
+```{r}
+
+
+x2 <- x1 + 2 * (1 - pnorm(x1, mean = 0.1, sd = 0.5))
+
+plotx(x1, x2)
+plotq(x1, x2, 20)
+
+```
+
+
+
+## Larger variance in exposures (except right tail)
+
+This could occur on nice days when more people try and go outside.
+
+```{r}
+
+x2 <- rtruncnorm(1000, a = 0, sd = 5, mean = 1)
+
+
+plotx(x1, x2)
+plotq(x1, x2, 20)
+```
+
+
+
+# Different coefficient functions
+
+## Constant coefficient function
+
+This has the interpretation of the effect of pollution on outcome being the same for all parts of the distribution
+
+```{r}
+N <- 1000
+seq0 <- seq(0, 1, length = N)
+plot1 <- function(x, seq1 = seq0) {
+
+  maxy <- max(x)
+  plot(seq1, x, xlim = c(0, 1), ylim = c(0, maxy), type = "l", 
+    ylab = "Beta function", xlab = "Quantile of exposure")
+  abline(h = 0, lty = 2)
+}
+
+plot1(rep(1, N))
+```
+
+
+
+## Coefficient function increases for highest exposures
+
+
+```{r}
+x1 <- 1 + exp(seq0 * 8) / 1000
+plot1(x1)
+```
+
+
+## Coefficient function increases for lowest exposures
+
+```{r}
+x1 <- 1 + exp(seq0 * -10) / .5
+plot1(x1)
+
+```
+
+
+## Coefficient function increases for lowest and highest exposures
+
+```{r}
+x1 <- 5 * (seq0 - 0.5)^2 + 1
+plot1(x1)
+
+```

@@ -1,0 +1,277 @@
+---
+title: "Simulation study exploring exposure distribution changes"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    theme: cosmo
+    toc_depth: 2
+---
+		  
+```{r lib, warning = F, message = F, echo = F}
+library(dplyr)
+library(reshape2)
+library(knitr)
+library(ggplot2)
+library(RColorBrewer)
+library(fda)
+library(fda.usc)
+library(truncnorm)
+library(gridExtra)
+library(MESS)
+library(refund)
+
+
+opts_chunk$set(message = F, fig.align = "center", warning = F, echo = F)
+
+eval1 <- T
+figh1 <- 4
+figw1 <- 8
+```
+
+
+
+```{r external}
+source("sim_study_fn.R")
+source("sim_study_display.R")
+```
+
+Jenna Krall
+
+5/28/15
+
+The current project is aimed at using distributions of exposure to outdoor pollution as predictors in a health effects regression model.  While previous studies only had access to daily summaries of exposure (e.g. daily mean), recently simulated exposure data has become available and provides a distribution of exposures for each day.  Having exposure distributions for each day will allow us to determine the changes in exposure distribution that are associated with the greatest increases in adverse health outcomes.  Additionally, we can determine the associations between quantiles of the exposure distribution and adverse health outcomes.  This current analysis is focused on the question of how quantiles of the exposure distribution are associated with adverse health outcomes.  Knowing whether some quantiles are more associated with adverse health outcomes can help to develop more targeted public health campaigns.  For example, if the 20\% quantile is most associated with adverse health outcomes, then those individuals who generally have lower exposures to outdoor pollution should be targeted.
+
+This document includes a preliminary simulation study to determine whether using the quantiles of exposure in a functional regression model yields good estimates of the health effects.  One concern is that if using standard regression techniques provides comparable results in this scenario, there is no reason to pursue functional data analysis. 
+
+Next steps:
+
+1. Scale up real datai from ZCTA to all of Atlanta
+2. Perform simulation study using real exposure distribution data
+
+
+```{r argv}
+naG <- 100
+na1 <- 10
+argvals2 <- seq(0, 1, length = na1)
+ny <- 100
+ns2 <- 3
+
+disttype1 <- "pois"
+sd2 <- 0.1
+```
+
+# Description of creating distributions of exposures
+
+
+In order to perform the simulation study, we first had to generate distributions of exposures for each day.  To start, we assumed that the distribution of exposures on each day was truncN$(0.5, 4^2)$ where the concentrations were truncated below by zero.  The histogram of this distribution is shown below.  Then, we modified this distribution according to how the distributions might change day-to-day, as described in the following sections. 
+
+
+
+
+```{r truncn}
+x <- rtruncnorm(10000, a = 0, mean =0.5, sd = 4)
+hist(x, main = "Basic simulated exposure distribution", xlab = "Concentration")
+
+```
+
+
+## Shift in exposures
+
+We first assume that the distribution of exposures shifts day-to-day with ambient PM2.5.  Therefore, the shape of the true distribution doesn't change, though day-to-day variability in the sampled exposures may change. To accomplish this, for each day, we sampled $s$ from an exponential distribution to determine the shift (rate = 1/2).  Then, we added this rate to the originally generated data such that the exposures followed truncN$(0.5 + s_t, 4^2)$ for day $t$.
+
+In the first row of plots below, we show the histograms and corresponding quantile plots across days for these set of exposures over time.  For the quantiles, we assume that we sampled ten quantiles from [0,1]. In the second row of plots, we show the quantile plots again, along with the smoothed functional quantile plots using bsplines with order equal to `r ns2`.
+
+
+```{r shift, fig.height = figh1, fig.width = figw1}
+set.seed(1528)
+
+x1 <- getx(ny, naG, argvals2, typex = "shift", ns1 = ns2)
+#ns2 <- 5
+
+plotallx(x1, argvals2)
+```
+
+## Long right tail
+
+Another way the distributions in exposure might change is if when PM2.5 increases outside, only those who are in the right tail (e.g. outdoor workers) have increases in exposure.  To create the long right tail, we sampled from the exponential distribution a parameter $s_t$ as described in the previous section.  Then, we computed the cumulative distribution of the sampled truncated normal distributions, $F(x)^4/2$.  This function was zero for small quantiles and then increased smoothly for the quantiles greater than 0.5.  We multiplied this function by the exponential value $s_t$, which did not change the zero values for small quantiles, but changed the magnitude of increase for the larger quantiles.  Last, we added this new values to our truncated normal.
+
+```{r longr, fig.height = figh1, fig.width = figw1}
+x1 <- getx(ny, naG, argvals2, typex = "longr", ns1 = ns2)
+
+
+plotallx(x1, argvals2)
+
+```
+
+## Long left tail
+
+The exposures might increase more for the smaller quantiles if, for example, on nice days, office workers or individuals in assisted living make an effort to go outdoors, and therefore increase their exposure.  We generated this distribution of exposures in a similar way to the exposures for the long right tail in the previous section.  Instead of taking the cumulative distribution, we took the truncated normal exposures and took $e^{-6 * x}$.  This function is large for small quantiles, and zero for larger quantiles.  We multiplied these values by the exponential values $s_t$ for each day to change the degree of scaling for each day.  We then added the result to the truncated normal exposures.  
+
+```{r longl, fig.height = figh1, fig.width = figw1}
+x1 <- getx(ny, naG, argvals2, typex = "longl", ns1 = ns2)
+
+
+plotallx(x1, argvals2)
+
+```
+
+## Increased exposure variance
+
+We also consider a simulated scenario where the variability of exposures increases on some days, which could be driven by more varied behavior on nice days, where some people do not change their low exposure habits and others go outdoors.  To accomplish this, we generated exposures as truncN$(0.5, \sigma_t)$, where $\sigma_t$ was allowed to vary from day-to-day.  We chose $\sigma_t$ from a random uniform distribution between 1 and 6.  
+
+```{r wide, fig.height = figh1, fig.width = figw1}
+x1 <- getx(ny, naG, argvals2, typex = "wide", ns1 = ns2)
+
+
+plotallx(x1, argvals2)
+
+```
+
+
+# Beta functions
+
+
+We consider 6 functions for beta(q):
+
+1. Constant beta, $\beta$(q) = 1
+2. Larger beta for low and high quantiles, $\beta$(q) = 1 + 5 * (q - 0.5)^2
+3. Larger beta for low quantiles,  $\beta$(q) = 1 + 2 * exp(q * -10)
+4. Larger beta for high quantiles, $\beta$(q) = 1 + 1 / 1000 * exp(q * 8)  
+5. Only the median has an association with the health outcome, $\beta(0.5) = 1$ and $\beta(p) = 0, \forall p\neq 0.5$.  
+6. Only the median, 75\%, and 90\% percentiles have associations with the health outcome $\beta(p) = 1,~p \in A=\{0.5, 0.75, 0.9\}$, $\beta(p) = 0,~p \notin A$.
+
+These beta functions were chosen to reflect the scenarios where the association doesn't vary by quantile (constant beta), the lower and upper quantiles have a greater effect (if these represent more susceptible individuals), the low quantiles have a greater effect, and the high quantiles have a greater effect.  These beta functions are shown below in the results as the black curves.
+
+The last two beta functions were generated to represent cases where the univariate or multivariate models would be expected to perform well.  However, these cases are unlikely in reality, where if the quantiles are associated with the health outcome, the beta function is likely continuous.
+
+
+# Generating outcome data
+
+Once we chose a distribution of exposures and a beta function, we generated outcomes y as Poisson($\mu$), where $\mu=\exp\{\int_0^1 \beta(q) X(q) dq\}$.  To approximate the integral, we multiplied the observed x values by the beta function at the observed quantiles and computed the area under the curve.
+
+
+# Simulation study
+
+## Methods
+
+We generated quantile data from our exposures for 10 quantiles from 0 to 10.  For each simulated scenario (choice of distributions for exposures, and choice of $\beta(q)$), we fitted poisson functional generalized linear models using the fda.usc R package.  For both the exposure and the beta function, we used bsplines with order = `r ns2`.  We show the true beta curves (black) and the estimated curves (and pointwise 95\% confidence intervals) using FDA (orange) in the box of plots below for each scenario.
+
+To compare our results with more traditional approaches, we fit the quantiles using both univariate log-linear regression (light blue) and multivariate log-linear regression (dark blue).  We assumed that the researcher selected those quantiles of primary interest: 10\%, 25\%, 50\%, 75\%, 90\%.   
+
+## Results
+
+```{r beta, fig.height = 20, fig.width = 15}
+ag1 <- c(0.1, 0.25, 0.5, 0.75, 0.9)
+
+tx <- c("shift", "longr", "longl", "wide")
+nx <- c("Shift", "Long right", "Long left", "Wide")
+
+tb <- c("constant", "x2", "low", "high")
+
+
+qb1 <- 1
+names(qb1) <- 50
+qb2 <- c(1, 1, 1)
+names(qb2) <- c(50, 75, 90)
+qbs <- list(qb1, qb2)
+
+par(mfcol = c(6, 4))
+# For each x
+for(xi in 1 : 4) {
+
+        
+  x1 <- getx(ny, naG, argvals2, typex = tx[xi], ns1 = ns2)
+  
+  # For each beta
+  for(bi in 1 : 6) {
+    #if (! (xi == 1 & bi > 1)) {
+      if(bi < 5) {
+        tb2 <- tb[bi]
+        tb3 <- tb2  
+      }else{
+	tb2 <- qbs[[bi - 4]]
+        tb3 <- paste0("Quantiles: ", paste(names(tb2), collapse = ", "))
+      }
+      sim1 <- simout(x1, argvals2, argvalslr = ag1, typeb = tb2, 
+        sd1 = sd2, disttype = disttype1)
+    #}
+      main2 <- paste0("X = ", nx[xi], ", Beta = ", tb3)
+      plotbeta1(sim1, argvals2, argvalslr = ag1, disttype = disttype1, 
+        main1 = main2)
+
+  }
+}
+
+
+
+
+
+
+
+
+
+```
+
+
+
+# Measurement error when using standard regression results
+
+
+When performing this simulation study, we discovered a problem when using a standard regression approach, selecting one quantile of interest, when the beta function is continuous.  If the true model is as defined above in the simulation study where the outcome is distributed as Poisson($\mu$) and $\mu=\exp\{\int_0^1 \beta(q) X(q) dq\}$, then because of the ways the exposure distributions vary day-to-day, using one quantile will lead to biased estimation of the effect.
+
+To illustrate this issue, we use the simpler case of linear regression.  Suppose the true model is $Y=\int_0^1 \beta(q) X(q) dq$, but that $\beta(q)=\beta$ is constant over quantiles.  Then, this simplifies to $Y=\beta\int_0^1 X(q)dq$.  Instead of fitting this model, we fit the model $Y = \beta_0 + \beta_1 X_{q_1}$ for some quantile $q_1$.  The issue in our scenario is that the variability of $\int_0^1X(q)dq$ between days is smaller than the variability of $X_{q_1}$, particularly for larger quantiles.  This is driven by the lower bound of 0 concentration and no upper bound.     
+
+Below, we have the same set of first plots as shown above, for a shift in x.  
+
+```{r me}
+
+
+set.seed(1528)
+
+x1 <- getx(ny, naG, argvals2, typex = "shift", ns1 = ns2)
+#ns2 <- 5
+
+plotallx(x1, argvals2)
+
+intx <- var(apply(x1$x1, 2, auc, x = argvals2))
+
+var1 <- apply(x1$x1, 1, var)
+#var1["integral"] <- intx
+d1 <- data.frame(var1)
+
+rownames(d1) <- c(round(argvals2 * 100, 1)) 
+
+d1 <- data.frame(rownames(d1), d1, d1 / intx)
+
+
+colnames(d1) <- c("Quantile", "Day-to-day variability", "Var / integral var")
+
+
+
+
+```
+
+In this scenario, the variability in x at the 88.9\% quantile is `r round(var(x1$x1[10,]), 2)` whereas the variability in the integral of x is `r round(intx, 2)`.  This can be viewed as a measurement error scenario, where the variability in the true predictor is different than the variability in the error-prone predictor.  The table below shows the day-to-day variability in each quantile and the ratio of the variability to the variability of the true predictor.
+
+
+```{r}
+
+kable(d1, digits = 2, row.names = F)
+
+```
+
+
+For the later quantiles, e.g. the 88.9\% quantile, the variability is greater in the individual quantile than the integral.  Therefore, this could be similar to a traditional classical measurement error scenario, which in linear regression would cause attenuation of the estimated coefficient.  However, in practice fitting log-linear regression, both the underestimation and overestimation of the variability can result in bias in the estimated coefficient.  
+
+
+We illustrate this result below where $Y \sim N(2\int_0^1 X(q), 0.1^2)$ where $\beta(q) = 2$. 
+
+```{r}
+sim1 <- simout(x1, argvals2, typeb = "constant", sd1 = sd2, val1 = 2, 
+  disttype = "norm")
+    #}
+plotbeta1(sim1, argvals2, disttype = "norm")
+```
+
+If these results are correct, if we use one quantile in place of the true distribution, we will obtain biased estimates of the association with health.  Additionally, as we see in the results above, fitting a multiple regression model leads to very poor results because of the collinearity between predictors.
