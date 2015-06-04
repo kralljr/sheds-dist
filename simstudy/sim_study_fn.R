@@ -1,4 +1,4 @@
-getx <- function(ny, na, argvals1, typex = "shift", rate1 = 1/2, ns1 = 10) {
+getx <- function(ny, na, argvals1, typex = "shift", mean1 = 15, sd1 = 1.5, rate1 = 1/2, ns1 = 10) {
   # Specify number of arguments/quantiles
   # Specify total number of x (quantiles X days)
   N <- na * ny
@@ -7,23 +7,26 @@ getx <- function(ny, na, argvals1, typex = "shift", rate1 = 1/2, ns1 = 10) {
   # For shift in distribution
   if(typex == "shift") {
     # Define shift, varies for each day
-    rates1 <- rep(rexp(ny, rate = rate1), each = na)
+    #rates1 <- rep(rexp(ny, rate = rate1), each = na)
+    rates1 <- rep(runif(ny, min = -5, max = 20), each = na)
     # Base dist truncnorm, plus rates vary for each day
-    x0 <- rtruncnorm(N, a = 0, mean = 0.5, sd = 4)
+    x0 <- rtruncnorm(N, a = 0, mean = mean1, sd = sd1)
     xall <- matrix(x0 + rates1, nrow = na, byrow = F)
   
   # For long right tail
   } else if (typex == "longr") {
     # Find base distribution
-    x1 <- rtruncnorm(N, a = 0, mean = 0.5, sd = 4)
+    x1 <- rtruncnorm(N, a = 0, mean = mean1, sd = sd1)
+    med <- median(x1)
     # Add in right tail
     # q3 <- quantile(x1, probs = 0.75)
     # What to scale right tail by
-    adds <- rexp(ny, rate = rate1)
+    #adds <- rexp(ny, rate = rate1)
+    adds <- runif(ny, min = 2, max = 6)
     # Same for each day 
     x0 <- rep(adds, each = na)
     # Do not scale lower values
-    x0 <- x0 * ptruncnorm(x1)^4 / 2
+    x0 <- (x1 > med) * ((x1 - med) * x0)
     # Find xall
     xall <- matrix(x0 + x1, nrow = na, byrow = F)
 
@@ -34,15 +37,17 @@ getx <- function(ny, na, argvals1, typex = "shift", rate1 = 1/2, ns1 = 10) {
 
 
     # Find base distribution
-    x1 <- rtruncnorm(N, a = 0, mean = 0.5, sd = 4)
+    x1 <- rtruncnorm(N, a = 0, mean = mean1, sd = sd1)
+    med <- median(x1)
     # Add in left tail
     # q3 <- quantile(x1, probs = 0.25)
     # What to scale left tail by
-    adds <- rexp(ny, rate = 1 / rate1)
+    #adds <- rexp(ny, rate = 1 / rate1)
+    adds <- runif(ny, min = 2, max = 6)
     # Same for each day 
     x0 <- rep(adds, each = na)
     # Do not scale lower values
-    x0 <- x0 * exp(-x1 * 6)
+    x0 <- (x1 < med) * ((x1 - med) * -x0)
     # Find xall
     xall <- matrix(x0 + x1, nrow = na, byrow = F)
 
@@ -50,9 +55,9 @@ getx <- function(ny, na, argvals1, typex = "shift", rate1 = 1/2, ns1 = 10) {
   } else if (typex == "wide") {
 
     # Find standard deviations
-    sd1 <- rep(runif(ny, min = 1, max = 6), each = na) 
+    sd2 <- rep(runif(ny, min = 0.3, max = 6), each = na) 
     # Get x as truncnorm
-    x0 <- rtruncnorm(N, a = 0, mean = 0.5, sd = sd1)
+    x0 <- rtruncnorm(N, a = 0, mean = 15, sd = sd2)
     # Make matrix
     xall <- matrix(x0, nrow = na, byrow = F)
 
@@ -96,15 +101,15 @@ getbeta <- function(type, val = 1) { function(x) {
   
   # Beta increases for lower & higher quantiles
   } else if (type == "x2") {
-    val + 5 * (x - 0.5)^2 
+    val + 1/4 * (x - 0.5)^2 
 
   # Beta larger for low quantiles
   } else if (type == "low") {
-    val + 1 / 0.5 * exp(x * -10)
+    val + 1 / 10 * exp(x * -7)
 
   # Beta larger for high quantiles
   } else if (type == "high") {
-    1 + 1 / 1000 * exp(x * 8) 	
+    val + 1 / 10000 * exp(x * 7) 	
 
   # Beta not specified  
   } else {
