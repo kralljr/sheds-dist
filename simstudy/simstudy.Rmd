@@ -21,7 +21,7 @@ library(gridExtra)
 library(MESS)
 library(refund)
 
-
+fp1 <- "~/Documents/SHEDS"
 opts_chunk$set(message = F, fig.align = "center", warning = F, echo = F)
 
 eval1 <- T
@@ -44,17 +44,13 @@ The current project is aimed at using distributions of exposure to outdoor pollu
 
 This document includes a preliminary simulation study to determine whether using the quantiles of exposure in a functional regression model yields good estimates of the health effects.  One concern is that if using standard regression techniques provides comparable results in this scenario, there is no reason to pursue functional data analysis. 
 
-Next steps:
-
-1. Scale up real datai from ZCTA to all of Atlanta
-2. Perform simulation study using real exposure distribution data
 
 
 ```{r argv}
 naG <- 100
-na1 <- 10
+na1 <- 20
 argvals2 <- seq(0, 1, length = na1)
-ny <- 100
+ny <- 10000
 ns2 <- 3
 
 disttype1 <- "pois"
@@ -64,13 +60,13 @@ sd2 <- 0.1
 # Description of creating distributions of exposures
 
 
-In order to perform the simulation study, we first had to generate distributions of exposures for each day.  To start, we assumed that the distribution of exposures on each day was truncN$(0.5, 4^2)$ where the concentrations were truncated below by zero.  The histogram of this distribution is shown below.  Then, we modified this distribution according to how the distributions might change day-to-day, as described in the following sections. 
+In order to perform the simulation study, we first had to generate distributions of exposures for each day.  To start, we assumed that the distribution of exposures on each day was truncN$(15, 1.5^2)$ where the concentrations were truncated below by zero.  The histogram of this distribution is shown below.  Then, we modified this distribution according to how the distributions might change day-to-day, as described in the following sections. 
 
 
 
 
 ```{r truncn}
-x <- rtruncnorm(10000, a = 0, mean =0.5, sd = 4)
+x <- rtruncnorm(10000, a = 0, mean = 15, sd = 1.5)
 hist(x, main = "Basic simulated exposure distribution", xlab = "Concentration")
 
 ```
@@ -78,7 +74,7 @@ hist(x, main = "Basic simulated exposure distribution", xlab = "Concentration")
 
 ## Shift in exposures
 
-We first assume that the distribution of exposures shifts day-to-day with ambient PM2.5.  Therefore, the shape of the true distribution doesn't change, though day-to-day variability in the sampled exposures may change. To accomplish this, for each day, we sampled $s$ from an exponential distribution to determine the shift (rate = 1/2).  Then, we added this rate to the originally generated data such that the exposures followed truncN$(0.5 + s_t, 4^2)$ for day $t$.
+We first assume that the distribution of exposures shifts day-to-day with ambient PM2.5.  Therefore, the shape of the true distribution doesn't change, though day-to-day variability in the sampled exposures may change. To accomplish this, for each day, we sampled $s$ from an exponential distribution to determine the shift (rate = 1/2).  Then, we added this rate to the originally generated data such that the exposures followed truncN$(15 + s_t, 1.5^2)$ for day $t$.
 
 In the first row of plots below, we show the histograms and corresponding quantile plots across days for these set of exposures over time.  For the quantiles, we assume that we sampled ten quantiles from [0,1]. In the second row of plots, we show the quantile plots again, along with the smoothed functional quantile plots using bsplines with order equal to `r ns2`.
 
@@ -129,6 +125,55 @@ plotallx(x1, argvals2)
 ```
 
 
+## True exposures
+
+To demonstrate the simulation study using true exposures, we separately used 122 days of data from December 1999- March 2000 for winter exposures and 122 days of data from May 2000 - August 2000 for summer exposures from the scaled up Atlanta SHEDS data.  The data were scaled up from ZCTAs by sampling from each ZCTA proportional to its population (with the largest ZCTA, 30044, sampling all 100 individuals).  There were 193 ZCTAs in the file.  
+
+
+## Winter exposures
+
+```{r wtrue, fig.height = figh1, fig.width = figw1}
+xall <- read.csv(file.path(fp1, "sim_dates_winter.csv"))
+
+x1$xall <-  as.matrix(xall)
+x1$x1 <- apply(xall, 2, quantile, probs = argvals2)
+
+x1$xfn <- getxfn(x1$x1, argvals2, ns1 = ns2) 
+x1$basis1 <- x1$xfn$basis1
+x1$xfn <- x1$xfn$xfn
+
+
+
+plotallx(x1, argvals2) 
+
+xwtrue <- x1
+
+```
+
+## Summer exposures
+
+**Note: We eliminated exposures for June 2, 2000, which had many exposures close to 160 from one ZCTA.** 
+
+```{r strue, fig.height = figh1, fig.width = figw1}
+xall <- read.csv(file.path(fp1, "sim_dates_summer.csv"))
+
+xall <- xall[, -399]
+
+x1$xall <-  as.matrix(xall)
+x1$x1 <- apply(xall, 2, quantile, probs = argvals2)
+x1$xfn <- getxfn(x1$x1, argvals2, ns1 = ns2) 
+x1$basis1 <- x1$xfn$basis1
+x1$xfn <- x1$xfn$xfn
+
+
+
+plotallx(x1, argvals2) 
+
+xstrue <- x1
+
+```
+
+
 # Beta functions
 
 
@@ -161,30 +206,46 @@ To compare our results with more traditional approaches, we fit the quantiles us
 
 ## Results
 
-```{r beta, fig.height = 20, fig.width = 15}
+```{r beta, eval = T, fig.height = 10, fig.width = 15}
 ag1 <- c(0.1, 0.25, 0.5, 0.75, 0.9)
 
-tx <- c("shift", "longr", "longl", "wide")
-nx <- c("Shift", "Long right", "Long left", "Wide")
+tx <- c("shift", "longr", "longl", "wide", "wtrue", "strue")
+nx <- c("Shift", "Long right", "Long left", "Wide", "True Winter", "True Summer")
 
 tb <- c("constant", "x2", "low", "high")
 
 
-qb1 <- 1
+qb1 <- 0.05
 names(qb1) <- 50
-qb2 <- c(1, 1, 1)
+qb2 <- c(0.1, 0.05, 0.05)
 names(qb2) <- c(50, 75, 90)
 qbs <- list(qb1, qb2)
 
-par(mfcol = c(6, 4))
+x1use <- list()
 # For each x
-for(xi in 1 : 4) {
+for(xi in 1 : 6) {
 
-        
-  x1 <- getx(ny, naG, argvals2, typex = tx[xi], ns1 = ns2)
+  if(xi < 5) {
+    x1use[[xi]] <- getx(ny, naG, argvals2, typex = tx[xi], ns1 = ns2)
+  } else if (xi == 5){  
+    x1use[[xi]] <- xwtrue
+  } else {
+    x1use[[xi]] <- xstrue
+
+  }
+}
+
+
+
+
+
   
-  # For each beta
-  for(bi in 1 : 6) {
+# For each beta
+for(bi in 1 : 6) {
+  par(mfrow = c(2, 3))
+    
+  for(xi in 1 : 6) {
+    #print(xi) 
     #if (! (xi == 1 & bi > 1)) {
       if(bi < 5) {
         tb2 <- tb[bi]
@@ -193,14 +254,15 @@ for(xi in 1 : 4) {
 	tb2 <- qbs[[bi - 4]]
         tb3 <- paste0("Quantiles: ", paste(names(tb2), collapse = ", "))
       }
-      sim1 <- simout(x1, argvals2, argvalslr = ag1, typeb = tb2, 
-        sd1 = sd2, disttype = disttype1)
+      sim1 <- simout(x1use[[xi]], argvals2, argvalslr = ag1, typeb = tb2, 
+        sd1 = sd2, disttype = disttype1, val1 = 0.05)
     #}
       main2 <- paste0("X = ", nx[xi], ", Beta = ", tb3)
       plotbeta1(sim1, argvals2, argvalslr = ag1, disttype = disttype1, 
         main1 = main2)
 
   }
+
 }
 
 
@@ -229,7 +291,7 @@ Below, we have the same set of first plots as shown above, for a shift in x.
 
 set.seed(1528)
 
-x1 <- getx(ny, naG, argvals2, typex = "shift", ns1 = ns2)
+x1 <- getx(ny, naG, argvals2, typex = "longr", ns1 = ns2)
 #ns2 <- 5
 
 plotallx(x1, argvals2)
