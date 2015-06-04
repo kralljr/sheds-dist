@@ -5,7 +5,7 @@ plotx <- function(x, argvals1) {
   x1 <- x$x1
   xall <- x$xall
   colnames(xall) <- paste0("x", seq(1, ncol(xall)))
-  
+  colnames(x1) <- colnames(xall)  
   # Get in form for ggplot
   mxall <- melt(xall)
 
@@ -122,7 +122,7 @@ plotbeta1 <- function(sim1, argvals1, cols = NULL, disttype = "norm", main1 = NU
     }
     
     p1 <- plot(fd1, xlab = "Quantile", ylab = "Beta",
-      ylim = c(-2, 7), main = main1, col = cols[1])
+      ylim = c(-0.1, 0.5), main = main1, col = cols[1])
     plot(fdlb, add = T, col = cols[1], lty = 2)
     plot(fdub, add = T, col = cols[1], lty = 2)
 
