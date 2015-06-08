@@ -48,10 +48,10 @@ This document includes a preliminary simulation study to determine whether using
 
 ```{r argv}
 naG <- 100
-na1 <- 20
+na1 <- 10
 argvals2 <- seq(0, 1, length = na1)
 ny <- 10000
-ns2 <- 3
+ns2 <- 4
 
 disttype1 <- "pois"
 sd2 <- 0.1
