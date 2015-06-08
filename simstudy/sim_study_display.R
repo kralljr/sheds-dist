@@ -122,7 +122,7 @@ plotbeta1 <- function(sim1, argvals1, cols = NULL, disttype = "norm", main1 = NU
     }
     
     p1 <- plot(fd1, xlab = "Quantile", ylab = "Beta",
-      ylim = c(-0.1, 0.5), main = main1, col = cols[1])
+      ylim = c(-0.1, 0.3), main = main1, col = cols[1])
     plot(fdlb, add = T, col = cols[1], lty = 2)
     plot(fdub, add = T, col = cols[1], lty = 2)
 
@@ -148,16 +148,16 @@ plotbeta1 <- function(sim1, argvals1, cols = NULL, disttype = "norm", main1 = NU
 
   
   # Add points for traditional regression betas
-  points(argvals2, beta3, col = cols[3], pch = 8)
+  points(argvals2 + 0.01, beta3, col = cols[3], pch = 8)
   lbs <- beta3 - sim1$beta3[, 2] * 1.96
   ubs <- beta3 + sim1$beta3[, 2] * 1.96
-  segments(y0 = lbs, x0 = argvals2, y1 = ubs, col = cols[3], lty = 1)
+  segments(y0 = lbs, x0 = argvals2 + 0.01, y1 = ubs, col = cols[3], lty = 1)
 
   
-  points(argvalslr, beta2, col = cols[4], pch = 16)  
+  points(argvalslr - 0.01, beta2, col = cols[4], pch = 16)  
   lbs <- beta2 - sim1$beta2[, 2] * 1.96
   ubs <- beta2 + sim1$beta2[, 2] * 1.96
-  segments(y0 = lbs, x0 = argvalslr, y1 = ubs, col = cols[4], lty = 1)
+  segments(y0 = lbs, x0 = argvalslr - 0.01, y1 = ubs, col = cols[4], lty = 1)
 
   abline(h = 0, lty = 2, col = "grey70")  
   # Add legend
