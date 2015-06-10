@@ -43,11 +43,11 @@ getx <- function(ny, na, argvals1, typex = "shift", mean1 = 15, sd1 = 1.5, rate1
     # q3 <- quantile(x1, probs = 0.25)
     # What to scale left tail by
     #adds <- rexp(ny, rate = 1 / rate1)
-    adds <- runif(ny, min = 2, max = 6)
+    adds <- runif(ny, min = 0, max = 2)
     # Same for each day 
     x0 <- rep(adds, each = na)
     # Do not scale lower values
-    x0 <- (x1 < med) * ((x1 - med) * -x0)
+    x0 <- (x1 < med) * ((-x1 + med) * -x0)
     # Find xall
     xall <- matrix(x0 + x1, nrow = na, byrow = F)
 
