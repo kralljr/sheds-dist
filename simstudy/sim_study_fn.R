@@ -18,6 +18,7 @@ getx <- function(ny, na, argvals1, typex = "shift", mean1 = 15, sd1 = 1.5, rate1
     # Find base distribution
     x1 <- rtruncnorm(N, a = 0, mean = mean1, sd = sd1)
     med <- median(x1)
+    med <- 15
     # Add in right tail
     # q3 <- quantile(x1, probs = 0.75)
     # What to scale right tail by
@@ -39,6 +40,7 @@ getx <- function(ny, na, argvals1, typex = "shift", mean1 = 15, sd1 = 1.5, rate1
     # Find base distribution
     x1 <- rtruncnorm(N, a = 0, mean = mean1, sd = sd1)
     med <- median(x1)
+    med <- 15
     # Add in left tail
     # q3 <- quantile(x1, probs = 0.25)
     # What to scale left tail by
@@ -139,7 +141,7 @@ gety <- function(argvals1, betaf, x1, disttype, sd1 = 0.01) {
     if(length(nums) > 1) {
       xhold <- t(xhold)
       
-      linf <- sweep(xhold, 2, betaf, "*")
+      linf <- rowSums(sweep(xhold, 2, betaf, "*"))
     }else{
       linf <- betaf * xhold
     } 
