@@ -67,7 +67,7 @@ plotxfn <- function(x, argvals1) {
   }
 
   # Plot functional x
-  p1 <- plot(xfn, col = 1, lty = 1, xlab = "Quantile", ylab = "Concentration",
+  p1 <- plot(xfn, col = 1, lty = 1, ylim = c(0, max(x1)), xlab = "Quantiles", ylab = "Concentration",
     main = "Smoothed quantiles using b-splines")
 }
 
@@ -104,9 +104,9 @@ plotbeta1 <- function(sim1, argvals1, cols = NULL, disttype = "norm", main1 = NU
     # Specify functional beta and plot
     betaest <- fd1$betaestlist[[2]]
     betaest <- betaest$fd
-    #p1 <- plotbeta(betaest, betafstd, argvals1) 
+    p1 <- plotbeta(betaest, betafstd, argvals1) 
     
-    plot(1, 1, type = "n", ylim = c(-0.5, 3.5), xlim = c(0, 1),
+    plot(1, 1, type = "n", ylim = c(-0.1, 0.3), xlim = c(0, 1),
       xlab = "Quantile", ylab = "Beta", 
       main = "Beta function", col = cols[1])
   } else if(disttype == "pois") {
