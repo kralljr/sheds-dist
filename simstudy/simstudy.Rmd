@@ -48,13 +48,15 @@ This document includes a preliminary simulation study to determine whether using
 
 ```{r argv}
 naG <- 100
-na1 <- 10
-argvals2 <- seq(0, 1, length = na1)
-ny <- 10000
-ns2 <- 4
+na1 <- 20
+argvals2 <- seq(0.1, 0.9, length = na1)
+ny <- 100
+ns2 <- 5
 
 disttype1 <- "pois"
-sd2 <- 0.1
+
+disttype1 <- "norm"
+sd2 <- 0.001
 ```
 
 # Description of creating distributions of exposures
@@ -90,7 +92,10 @@ plotallx(x1, argvals2)
 
 ## Long right tail
 
-Another way the distributions in exposure might change is if when PM2.5 increases outside, only those who are in the right tail (e.g. outdoor workers) have increases in exposure.  To create the long right tail, we sampled from the exponential distribution a parameter $s_t$ as described in the previous section.  Then, we computed the cumulative distribution of the sampled truncated normal distributions, $F(x)^4/2$.  This function was zero for small quantiles and then increased smoothly for the quantiles greater than 0.5.  We multiplied this function by the exponential value $s_t$, which did not change the zero values for small quantiles, but changed the magnitude of increase for the larger quantiles.  Last, we added this new values to our truncated normal.
+Another way the distributions in exposure might change is if when PM2.5 increases outside, only those who are in the right tail (e.g. outdoor workers) have increases in exposure.  
+
+To create the long right tail, we sampled from the uniform $[2, 6]$ distribution a shift parameter $a_t$.  Then, we computed $s_t = ((x > 15) * (x - 15) * a_t)^+$.  This positive part expression is simply the concentrations $x$ for concentrations less than the mean (15) and a line with slope $a_t$ for concentrations greater than the mean.  We added $s_t$ to the concentrations $x$ to create distributions with changing right tails. 
+
 
 ```{r longr, fig.height = figh1, fig.width = figw1}
 x1 <- getx(ny, naG, argvals2, typex = "longr", ns1 = ns2)
@@ -102,7 +107,11 @@ plotallx(x1, argvals2)
 
 ## Long left tail
 
-The exposures might increase more for the smaller quantiles if, for example, on nice days, office workers or individuals in assisted living make an effort to go outdoors, and therefore increase their exposure.  We generated this distribution of exposures in a similar way to the exposures for the long right tail in the previous section.  Instead of taking the cumulative distribution, we took the truncated normal exposures and took $e^{-6 * x}$.  This function is large for small quantiles, and zero for larger quantiles.  We multiplied these values by the exponential values $s_t$ for each day to change the degree of scaling for each day.  We then added the result to the truncated normal exposures.  
+The exposures might increase more for the smaller quantiles if, for example, on nice days, office workers or individuals in assisted living make an effort to go outdoors, and therefore increase their exposure.  We generated this distribution of exposures in a similar way to the exposures for the long right tail in the previous section. 
+
+
+To create the long left tail, we sampled from the uniform $[0, 2]$ distribution a shift parameter $a_t$.  Then, we computed $s_t = ((x < 15) * (15 - x) * -a_t)^+$.  This positive part expression is simply the concentrations $x$ for concentrations greater than the mean (15) and a line with slope $-a_t$ for concentrations less than the mean.  We added $s_t$ to the concentrations $x$ to create distributions with changing left tails. 
+
 
 ```{r longl, fig.height = figh1, fig.width = figw1}
 x1 <- getx(ny, naG, argvals2, typex = "longl", ns1 = ns2)
@@ -114,7 +123,7 @@ plotallx(x1, argvals2)
 
 ## Increased exposure variance
 
-We also consider a simulated scenario where the variability of exposures increases on some days, which could be driven by more varied behavior on nice days, where some people do not change their low exposure habits and others go outdoors.  To accomplish this, we generated exposures as truncN$(0.5, \sigma_t)$, where $\sigma_t$ was allowed to vary from day-to-day.  We chose $\sigma_t$ from a random uniform distribution between 1 and 6.  
+We also consider a simulated scenario where the variability of exposures increases on some days, which could be driven by more varied behavior on nice days, where some people do not change their low exposure habits and others go outdoors.  To accomplish this, we generated exposures as truncN$(15, \sigma_t)$, where $\sigma_t$ was allowed to vary from day-to-day.  We chose $\sigma_t$ from a random uniform distribution between 0.3 and 6.  
 
 ```{r wide, fig.height = figh1, fig.width = figw1}
 x1 <- getx(ny, naG, argvals2, typex = "wide", ns1 = ns2)
@@ -179,12 +188,12 @@ xstrue <- x1
 
 We consider 6 functions for beta(q):
 
-1. Constant beta, $\beta$(q) = 1
-2. Larger beta for low and high quantiles, $\beta$(q) = 1 + 5 * (q - 0.5)^2
-3. Larger beta for low quantiles,  $\beta$(q) = 1 + 2 * exp(q * -10)
-4. Larger beta for high quantiles, $\beta$(q) = 1 + 1 / 1000 * exp(q * 8)  
-5. Only the median has an association with the health outcome, $\beta(0.5) = 1$ and $\beta(p) = 0, \forall p\neq 0.5$.  
-6. Only the median, 75\%, and 90\% percentiles have associations with the health outcome $\beta(p) = 1,~p \in A=\{0.5, 0.75, 0.9\}$, $\beta(p) = 0,~p \notin A$.
+1. Constant beta, $\beta$(q) = 0.05
+2. Larger beta for low and high quantiles, $\beta$(q) = 0.05 + 1/4 * (q - 0.5)^2
+3. Larger beta for low quantiles,  $\beta$(q) = 0.05 + 1/10 * exp(q * -7)
+4. Larger beta for high quantiles, $\beta$(q) = 0.05 + 1 / 10000 * exp(q * 7)  
+5. Only the median has an association with the health outcome, $\beta(0.5) = 0.05$ and $\beta(p) = 0, \forall p\neq 0.5$.  
+6. Only the median, 75\%, and 90\% percentiles have associations with the health outcome $\beta(0.5) = 0.1,~\beta(p) = 0.05,~p \in A=\{0.75, 0.9\}$, $\beta(p) = 0,~p \notin A$.
 
 These beta functions were chosen to reflect the scenarios where the association doesn't vary by quantile (constant beta), the lower and upper quantiles have a greater effect (if these represent more susceptible individuals), the low quantiles have a greater effect, and the high quantiles have a greater effect.  These beta functions are shown below in the results as the black curves.
 
@@ -208,7 +217,7 @@ To compare our results with more traditional approaches, we fit the quantiles us
 
 ```{r beta, eval = T, fig.height = 10, fig.width = 15}
 ag1 <- c(0.1, 0.25, 0.5, 0.75, 0.9)
-
+ny <- 1000
 tx <- c("shift", "longr", "longl", "wide", "wtrue", "strue")
 nx <- c("Shift", "Long right", "Long left", "Wide", "True Winter", "True Summer")
 
@@ -245,7 +254,7 @@ for(bi in 1 : 6) {
   par(mfrow = c(2, 3))
     
   for(xi in 1 : 6) {
-    #print(xi) 
+    #print(c(bi,  xi)) 
     #if (! (xi == 1 & bi > 1)) {
       if(bi < 5) {
         tb2 <- tb[bi]
@@ -327,10 +336,10 @@ kable(d1, digits = 2, row.names = F)
 For the later quantiles, e.g. the 88.9\% quantile, the variability is greater in the individual quantile than the integral.  Therefore, this could be similar to a traditional classical measurement error scenario, which in linear regression would cause attenuation of the estimated coefficient.  However, in practice fitting log-linear regression, both the underestimation and overestimation of the variability can result in bias in the estimated coefficient.  
 
 
-We illustrate this result below where $Y \sim N(2\int_0^1 X(q), 0.1^2)$ where $\beta(q) = 2$. 
+We illustrate this result below where $Y \sim N(0.1\int_0^1 X(q), 0.1^2)$ where $\beta(q) = 0.1$. 
 
 ```{r}
-sim1 <- simout(x1, argvals2, typeb = "constant", sd1 = sd2, val1 = 2, 
+sim1 <- simout(x1, argvals2, typeb = "constant", sd1 = sd2, val1 = 0.1, 
   disttype = "norm")
     #}
 plotbeta1(sim1, argvals2, disttype = "norm")
