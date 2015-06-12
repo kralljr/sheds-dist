@@ -1,7 +1,9 @@
 # File to test mcmc_corr.R
 library(mvtnorm)
 library(truncnorm)
+library(MESS)
 
+source("mcmc_corr.R")
 
 # CHECK! Works for nothing
 ny <- 99
@@ -23,9 +25,11 @@ lmu <- 5
 # Try for beta1
 # Issues:
 # 1. Low acceptance probability (incorporate correlation?)
-beta1 <- rep(0.01, ncol(x))
+beta1 <- rep(0.1, ncol(x))
 lmu <- rowSums(sweep(x, 2, beta1, "*"))
-
+lmu <- sweep(x, 2, beta1, "*")
+lmu <- apply(lmu, 1, function(x) auc(quants1, x))
+lmu <- lmu + 3
 
 #phi <- 0
 #beta0 <- 0
@@ -38,8 +42,17 @@ lmu <- rowSums(sweep(x, 2, beta1, "*"))
 
 set.seed(10)
 y <- rpois(ny, exp(lmu))
-m1 <- mcmcout(y, x, quants = quants1, niter = 25000, burnin = 10000, thin = 10)
+m1 <- mcmcout(y, x, quants = quants1, niter = 250000, burnin = 0, thin = 1)
+save(m1, file = "test_mcmc.RData")
+
 
 m1$accept
 apply(m1$beta1, 2, mean)
-	
+
+
+plot(m1$beta0)
+plot(m1$sigma2)
+plot(m1$phi)
+
+plot(m1$beta1[, 1])
+plot(m1$beta1[, 2])
