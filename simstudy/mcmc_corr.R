@@ -17,9 +17,9 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
   # Get guessvec
   if(is.null(guessvec)) {
     guessvec$beta0 <- 0
-    guessvec$beta1 <- rep(0.95, ncol(x))
-    guessvec$phi <- 1000 
-    guessvec$sigma2 <- 10^(-10) 
+    guessvec$beta1 <- rep(0.1, ncol(x))
+    guessvec$phi <- 2
+    guessvec$sigma2 <- 0.1 
   }
   
   # Add in data
@@ -39,10 +39,10 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     beta1.tune <- tunes$beta1.tune
     phi.tune <- tunes$phi.tune
   } else{
-    beta0.tune <- 1
-    beta1.tune <- diag(0.001, nrow = np) 
+    beta0.tune <- 0.1
+    beta1.tune <- diag(0.01, nrow = np) 
     # From howard 
-    phi.tune <- 0.07
+    phi.tune <- 10
   }
 
   # Keep track of acceptance
@@ -78,13 +78,13 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
   l <- 1
   for (i in 1 : niter) {
     # Update beta0
-    #guessvec <- beta0f(guessvec, sd.beta0, beta0.tune)
+    guessvec <- beta0f(guessvec, sd.beta0, beta0.tune)
     # Update beta1
-    #guessvec <- beta1f(guessvec, beta1.tune)
+    guessvec <- beta1f(guessvec, beta1.tune)
     # Update sigma2
     guessvec <- sigma2f(guessvec, a.sig, b.sig)
     # Update phi	  
-    #guessvec <- phif(guessvec, a.phi, b.phi, phi.tune)
+    guessvec <- phif(guessvec, a.phi, b.phi, phi.tune)
    
     #save lth iteration of guesses
     if(i > burnin) {
@@ -99,7 +99,7 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
       }
 
       # Print count every 100
-      if(i %% 100 == 0) {
+      if(i %% 1000 == 0) {
         print(i)
       }
       k <- k + 1
@@ -107,6 +107,8 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
   }
   # Get acceptance proportion
   accept <- guessvec$accept / niter
+  names(accept) <- c("beta0", "beta1", "phi")
+
 
   # Get history of samples
   out <- list(beta0 = beta0.out, beta1 = beta1.out, sigma2 = sigma2.out, 
@@ -202,7 +204,7 @@ sigma2f <- function(guessvec, a.sig, b.sig) {
 
   # Find scaled beta1
   gamma1 <-  beta1 %*% C2 
-  n < length(gamma1)
+  n <- length(gamma1)
 
   # Sample posterior (normal lhood, gamma prior)
   gam1 <- rgamma(1, a.sig + n / 2, b.sig + sum(gamma1^2)/2)
