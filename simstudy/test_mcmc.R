@@ -43,7 +43,7 @@ lmu <- lmu + 3
 set.seed(10)
 y <- rpois(ny, exp(lmu))
 m1 <- mcmcout(y, x, quants = quants1, niter = 250000, burnin = 0, thin = 1)
-save(m1, file = "test_mcmc.RData")
+save(m1, file = "test_mcmc_tightpr.RData")
 
 
 m1$accept

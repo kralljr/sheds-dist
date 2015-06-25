@@ -57,11 +57,17 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     b.phi <- hyperp$b.phi
   } else {
     sd.beta0 <- 100 
-    a.sig <- 0.001
-    b.sig <- 0.001
-    a.phi <- 0.03
-    b.phi <- 0.005
+    #a.sig <- 0.001
+    #b.sig <- 0.001
+    a.sig <- 100
+    b.sig <- 10
+    #a.phi <- 0.03
+    #b.phi <- 0.005
+    a.phi <- 800
+    b.phi <- 1000
+ 
   }
+  
 
 
   # Setup output
