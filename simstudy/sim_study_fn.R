@@ -68,16 +68,23 @@ getx <- function(ny, na, argvals1, typex = "shift", mean1 = 15, sd1 = 1.5, rate1
     stop("typex not recognized")
   
   }
+  
+  
+  # Find mean
+  xM <- apply(xall, 2, mean)
+  xall <- sweep(xall, 2, xM)
+  
   # Find quantiles
   x1 <- apply(xall, 2, quantile, probs = argvals1)
-  
+  x1 <- abs(x1)
+
   # Get functional x
   xfn1 <- getxfn(x1, argvals1, ns1)
   xfn <- xfn1$xfn
   basis1 <- xfn1$basis1
 
   # Get outcome 
-  return(list(x1 = x1, xall = xall, xfn = xfn, basis1 = basis1))
+  return(list(x1 = x1, xall = xall, xfn = xfn, basis1 = basis1, xM = xM))
 
 }
 
@@ -96,7 +103,7 @@ getxfn <- function(xvar1, argvals1, ns1 = 15) {
 
 
 # beta function of x
-getbeta <- function(type, val = 1) { function(x) {
+getbeta <- function(type, val = 0) { function(x) {
   # Beta constant over quantiles
   if(type == "constant") {
     rep(val, length = length(x))
@@ -120,8 +127,9 @@ getbeta <- function(type, val = 1) { function(x) {
 }}
 
 
-gety <- function(argvals1, betaf, x1, disttype, sd1 = 0.01) {
+gety <- function(argvals1, betaM, betaf, x1, disttype, sd1 = 0.01) {
   xvar1 <- x1$x1
+  xM <- x1$xM
   # Get values of beta at x
 
   # If FDA is truth
@@ -149,6 +157,9 @@ gety <- function(argvals1, betaf, x1, disttype, sd1 = 0.01) {
   }
 
 
+  # Add in median
+  linf <- linf + xM * betaM
+
 
   # For normally dist outcome
   if(disttype == "norm") {
@@ -170,7 +181,7 @@ gety <- function(argvals1, betaf, x1, disttype, sd1 = 0.01) {
 
 
 
-simout <- function(x1, argvals1, typeb, disttype = "norm", sd1 = 0.01, argvalslr = argvals1, val1 = 1,...) {
+simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, argvalslr = argvals1, val1 = 1,...) {
   # Get function of beta
   if(class(typeb) != "numeric") {
     betaf <- getbeta(typeb, val = val1)
@@ -178,7 +189,7 @@ simout <- function(x1, argvals1, typeb, disttype = "norm", sd1 = 0.01, argvalslr
     betaf <- typeb
   }
   # Generate y
-  y1 <- gety(argvals1, betaf, x1, disttype, sd1)
+  y1 <- gety(argvals1, betaM, betaf, x1, disttype, sd1)
   # Get functional x
   xfn <- x1$xfn
   ns1 <- x1$basis1$nbasis
@@ -199,7 +210,7 @@ simout <- function(x1, argvals1, typeb, disttype = "norm", sd1 = 0.01, argvalslr
     
   # Depending on type of regression
   if(disttype == "norm") {  
-    fmod1 <- flm(xfn, y1)
+    fmod1 <- flm(x1, y1)
 
     beta3 <- summary(lm(eval(eqn1), data = dat1))$coef[-1, ] 
 
@@ -240,7 +251,9 @@ simout <- function(x1, argvals1, typeb, disttype = "norm", sd1 = 0.01, argvalslr
 
 
 
-flm <- function(xfn, y1) {
+flm <- function(x1, y1) {
+  xfn <- x1$xfn
+  xM <- x1$xM
   ny <- length(y1)
 
   # Get beta
@@ -252,10 +265,10 @@ flm <- function(xfn, y1) {
   betafd2     <- with(xfn, fd(basisobj=basis, fdnames=fdnames))
   # convert to an fdPar object
   betafdPar2  <- fdPar(betafd2)
-  betalist <- list(const=betafdPar1, xfn=betafdPar2)
+  betalist <- list(const=betafdPar1, xM = betafdPar1, xfn=betafdPar2)
 
   # Get x
-  xfdlist <- list(const=rep(1, ny), xfn=xfn)
+  xfdlist <- list(const=rep(1, ny), xM = xM, xfn=xfn)
   
   # Do functional regression
   fd1 <- fRegress(y1, xfdlist, betalist)
@@ -273,8 +286,10 @@ flm <- function(xfn, y1) {
 
 
 fglm1 <- function(x1, y1, argvals1, ns1) {
-  form1 <- formula(y1 ~ x)
-  
+  xM <- x1$xM
+  form1 <- formula(y1 ~ x + xM)
+ 
+
   basisx <- create.bspline.basis(c(0, 1), norder = ns1)
   basisb <- create.bspline.basis(c(0, 1), norder = ns1)
 
@@ -284,7 +299,7 @@ fglm1 <- function(x1, y1, argvals1, ns1) {
 
   xfn <- fdata(t(x1$x1), argvals = argvals1)
 
-  y1 <- data.frame(y1)
+  y1 <- data.frame(y1, xM)
   dat1 <- list("x" = xfn, "df" = y1) 
   
   

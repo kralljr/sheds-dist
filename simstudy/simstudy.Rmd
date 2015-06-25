@@ -51,11 +51,11 @@ naG <- 100
 na1 <- 20
 argvals2 <- seq(0.1, 0.9, length = na1)
 ny <- 100
-ns2 <- 5
+ns2 <- 4
 
 disttype1 <- "pois"
 
-disttype1 <- "norm"
+#disttype1 <- "norm"
 sd2 <- 0.001
 ```
 
@@ -145,12 +145,18 @@ To demonstrate the simulation study using true exposures, we separately used 122
 xall <- read.csv(file.path(fp1, "sim_dates_winter.csv"))
 
 x1$xall <-  as.matrix(xall)
+
+xM <- apply(xall, 2, mean)
+xall <- sweep(xall, 2, xM)
+
 x1$x1 <- apply(xall, 2, quantile, probs = argvals2)
+
+
 
 x1$xfn <- getxfn(x1$x1, argvals2, ns1 = ns2) 
 x1$basis1 <- x1$xfn$basis1
 x1$xfn <- x1$xfn$xfn
-
+x1$xM <- xM
 
 
 plotallx(x1, argvals2) 
@@ -169,11 +175,17 @@ xall <- read.csv(file.path(fp1, "sim_dates_summer.csv"))
 xall <- xall[, -399]
 
 x1$xall <-  as.matrix(xall)
+
+
+
+xM <- apply(xall, 2, mean)
+xall <- sweep(xall, 2, xM)
+
 x1$x1 <- apply(xall, 2, quantile, probs = argvals2)
 x1$xfn <- getxfn(x1$x1, argvals2, ns1 = ns2) 
 x1$basis1 <- x1$xfn$basis1
 x1$xfn <- x1$xfn$xfn
-
+x1$xM <- xM
 
 
 plotallx(x1, argvals2) 
@@ -263,12 +275,12 @@ for(bi in 1 : 6) {
 	tb2 <- qbs[[bi - 4]]
         tb3 <- paste0("Quantiles: ", paste(names(tb2), collapse = ", "))
       }
-      sim1 <- simout(x1use[[xi]], argvals2, argvalslr = ag1, typeb = tb2, 
-        sd1 = sd2, disttype = disttype1, val1 = 0.05)
+      sim1 <- simout(x1use[[xi]], argvals2, betaM = .01, argvalslr = ag1, typeb = tb2, 
+        sd1 = sd2, disttype = disttype1, val1 = 0)
     #}
       main2 <- paste0("X = ", nx[xi], ", Beta = ", tb3)
       plotbeta1(sim1, argvals2, argvalslr = ag1, disttype = disttype1, 
-        main1 = main2)
+       main1 = main2)
 
   }
 
@@ -295,7 +307,14 @@ To illustrate this issue, we use the simpler case of linear regression.  Suppose
 
 Below, we have the same set of first plots as shown above, for a shift in x.  
 
-```{r me}
+
+```{r}
+
+eval1 <- F
+```
+
+
+```{r me, eval = eval1}
 
 
 set.seed(1528)
@@ -323,10 +342,13 @@ colnames(d1) <- c("Quantile", "Day-to-day variability", "Var / integral var")
 
 ```
 
+
+
+
+```{r, eval = eval1}
+
+
 In this scenario, the variability in x at the 88.9\% quantile is `r round(var(x1$x1[10,]), 2)` whereas the variability in the integral of x is `r round(intx, 2)`.  This can be viewed as a measurement error scenario, where the variability in the true predictor is different than the variability in the error-prone predictor.  The table below shows the day-to-day variability in each quantile and the ratio of the variability to the variability of the true predictor.
-
-
-```{r}
 
 kable(d1, digits = 2, row.names = F)
 
@@ -338,8 +360,8 @@ For the later quantiles, e.g. the 88.9\% quantile, the variability is greater in
 
 We illustrate this result below where $Y \sim N(0.1\int_0^1 X(q), 0.1^2)$ where $\beta(q) = 0.1$. 
 
-```{r}
-sim1 <- simout(x1, argvals2, typeb = "constant", sd1 = sd2, val1 = 0.1, 
+```{r, eval = eval1}
+sim1 <- simout(x1, argvals2, betaM = 1, typeb = "constant", sd1 = sd2, val1 = 0.1, 
   disttype = "norm")
     #}
 plotbeta1(sim1, argvals2, disttype = "norm")

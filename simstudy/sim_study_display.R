@@ -59,7 +59,7 @@ plotxfn <- function(x, argvals1) {
   xfn <- x$xfn
 
   # Plot quantiles of x
-  plot(argvals1, x1[, 1], type = "l", xlim = c(0, 1), ylim = c(0, max(x1)), 
+  plot(argvals1, x1[, 1], type = "l", xlim = c(0, 1), ylim = c(min(x1), max(x1)), 
     xlab = "Quantiles", ylab = "Concentration",
     main = "Sample quantiles")
   for(i in 2 : ncol(x1)) {
@@ -67,7 +67,7 @@ plotxfn <- function(x, argvals1) {
   }
 
   # Plot functional x
-  p1 <- plot(xfn, col = 1, lty = 1, ylim = c(0, max(x1)), xlab = "Quantiles", ylab = "Concentration",
+  p1 <- plot(xfn, col = 1, lty = 1, ylim = c(min(x1), max(x1)), xlab = "Quantiles", ylab = "Concentration",
     main = "Smoothed quantiles using b-splines")
 }
 
@@ -106,13 +106,13 @@ plotbeta1 <- function(sim1, argvals1, cols = NULL, disttype = "norm", main1 = NU
     betaest <- betaest$fd
     p1 <- plotbeta(betaest, betafstd, argvals1) 
     
-    plot(1, 1, type = "n", ylim = c(-0.1, 0.3), xlim = c(0, 1),
+    plot(1, 1, type = "n", ylim = c(-.1, .3), xlim = c(0, 1),
       xlab = "Quantile", ylab = "Beta", 
       main = "Beta function", col = cols[1])
   } else if(disttype == "pois") {
     basis1 <- sim1$basis1
     lmf <- sim1$fmod1
-    coef1 <- summary(lmf)$coef[-1, ]
+    coef1 <- summary(lmf)$coef[-c(1,2), ]
     fd1 <- fd(coef1[, 1], basis1)
     fdlb <- fd(coef1[, 1] - 1.96 * coef1[, 2], basis1)
     fdub <- fd(coef1[, 1] + 1.96 * coef1[, 2], basis1)
@@ -122,7 +122,7 @@ plotbeta1 <- function(sim1, argvals1, cols = NULL, disttype = "norm", main1 = NU
     }
     
     p1 <- plot(fd1, xlab = "Quantile", ylab = "Beta",
-      ylim = c(-0.1, 0.3), main = main1, col = cols[1])
+      ylim = c(-1, 3), main = main1, col = cols[1])
     plot(fdlb, add = T, col = cols[1], lty = 2)
     plot(fdub, add = T, col = cols[1], lty = 2)
 
@@ -148,10 +148,10 @@ plotbeta1 <- function(sim1, argvals1, cols = NULL, disttype = "norm", main1 = NU
 
   
   # Add points for traditional regression betas
-  points(argvals2 + 0.01, beta3, col = cols[3], pch = 8)
+  #points(argvals2 + 0.01, beta3, col = cols[3], pch = 8)
   lbs <- beta3 - sim1$beta3[, 2] * 1.96
   ubs <- beta3 + sim1$beta3[, 2] * 1.96
-  segments(y0 = lbs, x0 = argvals2 + 0.01, y1 = ubs, col = cols[3], lty = 1)
+  #segments(y0 = lbs, x0 = argvals2 + 0.01, y1 = ubs, col = cols[3], lty = 1)
 
   
   points(argvalslr - 0.01, beta2, col = cols[4], pch = 16)  
