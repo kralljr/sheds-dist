@@ -39,10 +39,14 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     beta1.tune <- tunes$beta1.tune
     phi.tune <- tunes$phi.tune
   } else{
-    beta0.tune <- 0.1
-    beta1.tune <- diag(0.01, nrow = np) 
+    beta0.tune <- 0.01
+    beta1.tune <- diag(0.000001, nrow = np) 
+
+    #beta0.tune <- 0.0001
+    #beta1.tune <- diag(0.000000001, nrow = np) 
+      
     # From howard 
-    phi.tune <- 10
+    phi.tune <- 0.1
   }
 
   # Keep track of acceptance
@@ -377,6 +381,10 @@ mhstep <- function(guessvec, guessvec.new, llhood.old, llhood.new, j) {
 
   # Accept with probability alpha
   accept <- ifelse(alpha < rat, 1, 0)
+
+  if(is.null(accept) || is.na(accept) || is.infinite(accept)) {
+    accept <- 0
+  }
 
   # If accept, update guessvec
   if(accept) {
