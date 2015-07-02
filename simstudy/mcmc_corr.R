@@ -40,7 +40,7 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     phi.tune <- tunes$phi.tune
   } else{
     beta0.tune <- 0.01
-    beta1.tune <- diag(0.000001, nrow = np) 
+    beta1.tune <- diag(0.0001, nrow = np) 
 
     #beta0.tune <- 0.0001
     #beta1.tune <- diag(0.000000001, nrow = np) 
@@ -61,10 +61,10 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     b.phi <- hyperp$b.phi
   } else {
     sd.beta0 <- 100 
-    #a.sig <- 0.001
-    #b.sig <- 0.001
-    a.sig <- 100
-    b.sig <- 10
+    a.sig <- 5
+    b.sig <- 0.001
+    #a.sig <- 100
+    #b.sig <- 10
     #a.phi <- 0.03
     #b.phi <- 0.005
     a.phi <- 800
@@ -204,11 +204,10 @@ sigma2f <- function(guessvec, a.sig, b.sig) {
   beta1 <- guessvec$beta1
   sigma2 <- guessvec$sigma2
 
-  # Get covariance
-  Sigma <- sigma2 * exp(-1/phi * Dists)
+  # Get correlation,covariance matrix
+  C1 <- exp(-1/phi * Dists)
 
-  # Get correlation matrix
-  C1 <- Sigma / sigma2
+
   # Find scaling factor
   C2 <- chol(chol2inv(chol(C1)))
 
@@ -353,7 +352,8 @@ llhood.y <- function(guessvec) {
   x <- guessvec$x
 
   # Get mean of poisson distribution
-  mu <- exp(beta0 + rowSums(sweep(x, 2, beta1, "*")))
+  beta1b <-  rowSums(sweep(x, 2, beta1, "*")) * 1/length(beta1)
+  mu <- exp(beta0 + beta1b)
   n <- length(y)
 
   # Get log likelihood
