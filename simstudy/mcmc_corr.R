@@ -212,7 +212,7 @@ sigma2f <- function(guessvec, a.sig, b.sig) {
   C2 <- chol(chol2inv(chol(C1)))
 
   # Find scaled beta1
-  gamma1 <-  beta1 %*% C2 
+  gamma1 <-  beta1 %*% t(C2) 
   n <- length(gamma1)
 
   # Sample posterior (normal lhood, gamma prior)
