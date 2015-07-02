@@ -1,0 +1,105 @@
+--- 
+title: "Run Bayesian model" 
+output: 
+  html_document: 
+    toc: true 
+    number_sections: true 
+    theme: cosmo 
+    toc_depth: 2
+---
+
+
+```{r lib, warning F, message F, echo = F}
+# File to test mcmc_corr.R
+library(mvtnorm)
+library(truncnorm)
+library(MESS)
+library(knitr)
+
+
+opts_chunk$set(message = F, fig.align = "center", warning = F, echo = F)
+```
+
+
+
+
+```{r info}
+source("mcmc_corr.R")
+
+# CHECK! Works for nothing
+# CHECK!  Works for beta0
+
+
+# Set up dimensions and x
+ny <- 99
+na <- 10
+set.seed(10)
+x1 <- matrix(rtruncnorm(ny * na, mean = 15, a = 0, sd = 1.5), nrow = ny)
+
+
+# Set up quantiles and x
+quants1 <- c(0.7, 0.9)
+#quants1 <- seq(0.01, 0.99, length = 10)
+x <- apply(x1, 1, quantile, probs = c(0.1, 0.25, 0.5, 0.75, 0.9))
+x <- apply(x1, 1, quantile, probs = quants1)
+x <- t(x)
+
+
+
+
+
+# Try for beta1
+# Issues:
+# 1. Low acceptance probability (incorporate correlation?)
+beta1 <- rep(0.1, ncol(x))
+lmu <- rowSums(sweep(x, 2, beta1, "*"))
+#lmu <- sweep(x, 2, beta1, "*")
+#lmu <- apply(lmu, 1, function(x) auc(quants1, x))
+lmu <- lmu + 3
+
+#phi <- 0
+#beta0 <- 0
+#beta1 <- rep(10, 10)
+#sigma2 <- 1
+#guessvec1 <- list(beta0 = beta0, beta1 = beta1, phi = phi, sigma2 = sigma2)
+```
+
+
+
+
+
+```{r run}
+
+# Set seed
+set.seed(10)
+y <- rpois(ny, exp(lmu))
+m1 <- mcmcout(y, x, quants = quants1, niter = 50000, burnin = 0, thin = 1)
+#save(m1, file = "test_mcmc_tightpr.RData")
+```
+
+
+
+```{r tabs}
+
+acc1 <- cbind(names(m1$accept), m1$accept)
+colnames(acc1) <- c("Parameter", "Acceptance Probability")
+rownames(acc1) <- NULL
+kable(acc1)
+
+m1b <- round(apply(m1$beta1, 2, mean), 2)
+m1b <- data.frame(round(quants1, 2),  m1b)
+colnames(m1b) <- c("Quantile", "Posterior mean")
+kable(m1b)
+```
+
+
+```{r plot}
+plot(m1$beta0)
+plot(m1$sigma2)
+plot(m1$phi)
+
+plot(m1$beta1[, 1])
+plot(m1$beta1[, 2])
+
+
+```
