@@ -31,8 +31,8 @@ source("mcmc_corr.R")
 
 
 # Set up dimensions and x
-ny <- 99
-na <- 10
+ny <- 1000
+na <- 1000
 set.seed(10)
 x1 <- matrix(rtruncnorm(ny * na, mean = 15, a = 0, sd = 1.5), nrow = ny)
 
@@ -40,8 +40,12 @@ x1 <- matrix(rtruncnorm(ny * na, mean = 15, a = 0, sd = 1.5), nrow = ny)
 # Set up quantiles and x
 quants1 <- c(0.7, 0.9)
 #quants1 <- seq(0.01, 0.99, length = 10)
+quants1 <- seq(0.05, 0.95, by = 0.05)
+
 x <- apply(x1, 1, quantile, probs = c(0.1, 0.25, 0.5, 0.75, 0.9))
 x <- apply(x1, 1, quantile, probs = quants1)
+
+
 x <- t(x)
 
 
@@ -52,8 +56,9 @@ x <- t(x)
 # Issues:
 # 1. Low acceptance probability (incorporate correlation?)
 beta1 <- rep(0.1, ncol(x))
-lmu <- rowSums(sweep(x, 2, beta1, "*"))
-#lmu <- sweep(x, 2, beta1, "*")
+#lmu <- rowSums(sweep(x, 2, beta1, "*"))
+lmu <- sweep(x, 2, beta1, "*")
+lmu <- rowSums(lmu) * 1/length(beta1)
 #lmu <- apply(lmu, 1, function(x) auc(quants1, x))
 lmu <- lmu + 3
 
