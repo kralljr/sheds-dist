@@ -17,7 +17,7 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
   # Get guessvec
   if(is.null(guessvec)) {
     guessvec$beta0 <- 0
-    guessvec$beta1 <- rep(0.1, ncol(x))
+    guessvec$beta1 <- rep(0, ncol(x))
     guessvec$phi <- 2
     guessvec$sigma2 <- 0.1 
   }
@@ -40,7 +40,7 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     phi.tune <- tunes$phi.tune
   } else{
     beta0.tune <- 0.01
-    beta1.tune <- diag(0.0001, nrow = np) 
+    beta1.tune <- diag(0.000001, nrow = np) 
 
     #beta0.tune <- 0.0001
     #beta1.tune <- diag(0.000000001, nrow = np) 
@@ -60,16 +60,18 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     a.phi <- hyperp$a.phi
     b.phi <- hyperp$b.phi
   } else {
-    sd.beta0 <- 100 
+    #sd.beta0 <- 100 
+    sd.beta0 <- 0.001
     a.sig <- 5
     b.sig <- 0.001
     #a.sig <- 100
     #b.sig <- 10
     #a.phi <- 0.03
     #b.phi <- 0.005
-    a.phi <- 800
-    b.phi <- 1000
- 
+    #a.phi <- 900
+    #b.phi <- 1000
+    a.phi <- 9
+    b.phi <- 10
   }
   
 
@@ -88,9 +90,9 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
   l <- 1
   for (i in 1 : niter) {
     # Update beta0
-    guessvec <- beta0f(guessvec, sd.beta0, beta0.tune)
+    guessvec <- beta0f(guessvec, sd.beta0, beta0.tune, quants)
     # Update beta1
-    guessvec <- beta1f(guessvec, beta1.tune)
+    guessvec <- beta1f(guessvec, beta1.tune, quants)
     # Update sigma2
     guessvec <- sigma2f(guessvec, a.sig, b.sig)
     # Update phi	  
@@ -135,7 +137,7 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
 #' @param guessvec list of items in mcmc
 #' @param sd.beta0 standard deviation for normal prior
 #' @param beta0.tune tuning parameter for random walk 
-beta0f <- function(guessvec, sd.beta0, beta0.tune) {
+beta0f <- function(guessvec, sd.beta0, beta0.tune, quants) {
   # Get guesses
   beta0 <- guessvec$beta0
 
@@ -147,8 +149,8 @@ beta0f <- function(guessvec, sd.beta0, beta0.tune) {
   guessvec.new$beta0 <- beta0.prop
 
   # Get likelihoods
-  llhood.old <- llhood.beta0(guessvec, sd.beta0)
-  llhood.new <- llhood.beta0(guessvec.new, sd.beta0)
+  llhood.old <- llhood.beta0(guessvec, sd.beta0, quants)
+  llhood.new <- llhood.beta0(guessvec.new, sd.beta0, quants)
 
   # Select old vs. new guess
   guessvec <- mhstep(guessvec, guessvec.new, llhood.old, llhood.new, j = 1)
@@ -163,7 +165,7 @@ beta0f <- function(guessvec, sd.beta0, beta0.tune) {
 #'
 #' @param guessvec list of items in mcmc
 #' @param beta1.tune tuning covariance for random walk 
-beta1f <- function(guessvec, beta1.tune) {
+beta1f <- function(guessvec, beta1.tune, quants) {
   # Get guesses
   beta1 <- guessvec$beta1
   phi <- guessvec$phi
@@ -182,8 +184,8 @@ beta1f <- function(guessvec, beta1.tune) {
   guessvec.new$beta1 <- beta1.prop
 
   # Get likelihoods
-  llhood.old <- llhood.beta1.out(guessvec)
-  llhood.new <- llhood.beta1.out(guessvec.new)
+  llhood.old <- llhood.beta1.out(guessvec, quants)
+  llhood.new <- llhood.beta1.out(guessvec.new, quants)
 
   # Select old vs. new guess
   guessvec <- mhstep(guessvec, guessvec.new, llhood.old, llhood.new, j = 2)
@@ -292,14 +294,14 @@ llhood.phi <- function(guessvec, a.phi, b.phi) {
 #' 
 #' @param guessvec list of items in MCMC
 #' @param sd.beta0 standard deviation for normal prior
-llhood.beta0 <- function(guessvec, sd.beta0) {
+llhood.beta0 <- function(guessvec, sd.beta0, quants) {
   
   # get guesses
   beta0 <- guessvec$beta0
 
   # beta0 ~ N(0, sd.beta0^2)
-  norm1 <- dnorm(beta0, 0, sd.beta0)
-  ly <- llhood.y(guessvec)
+  norm1 <- dnorm(beta0, 0, sd.beta0, log = T)
+  ly <- llhood.y(guessvec, quants)
 
   llhood <- norm1 + ly
   return(llhood)
@@ -328,12 +330,12 @@ llhood.beta1 <- function(guessvec) {
 #' Log likelhood function for beta1 total
 #'
 #' @param guessvec list of items in MCMC
-llhood.beta1.out <- function(guessvec) {
+llhood.beta1.out <- function(guessvec, quants) {
 
   # Get normal likelihood of beta1
   lbeta1 <- llhood.beta1(guessvec)
   # Get poisson likelihood for y | beta1
-  ly <- llhood.y(guessvec)
+  ly <- llhood.y(guessvec, quants)
 
   # Get log likelihood
   llhood <- lbeta1 + ly
@@ -344,7 +346,7 @@ llhood.beta1.out <- function(guessvec) {
 #' Function to get poisson likelihood of y
 #'
 #' @param guessvec list of items in MCMC
-llhood.y <- function(guessvec) {
+llhood.y <- function(guessvec, quants) {
   # Get guesses
   y <- guessvec$y
   beta0 <- guessvec$beta0
@@ -352,7 +354,9 @@ llhood.y <- function(guessvec) {
   x <- guessvec$x
 
   # Get mean of poisson distribution
-  beta1b <-  rowSums(sweep(x, 2, beta1, "*")) * 1/length(beta1)
+  beta1b <- sweep(x, 2, beta1, "*")
+  #beta1b <-  rowSums(beta1b) * 1/length(beta1)
+  #beta1b <- apply(beta1b, 1, function(x) auc(quants, x))
   mu <- exp(beta0 + beta1b)
   n <- length(y)
 
