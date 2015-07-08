@@ -17,7 +17,7 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
   # Get guessvec
   if(is.null(guessvec)) {
     guessvec$beta0 <- 0
-    guessvec$beta1 <- rep(0, ncol(x))
+    guessvec$beta1 <- rep(0.1, ncol(x))
     guessvec$phi <- 2
     guessvec$sigma2 <- 0.1 
   }
@@ -40,13 +40,15 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     phi.tune <- tunes$phi.tune
   } else{
     beta0.tune <- 0.01
-    beta1.tune <- diag(0.000001, nrow = np) 
+    beta1.tune <- diag(0.0000001, nrow = np) 
 
     #beta0.tune <- 0.0001
     #beta1.tune <- diag(0.000000001, nrow = np) 
       
     # From howard 
     phi.tune <- 0.1
+    phi.tune <- 0.5
+
   }
 
   # Keep track of acceptance
@@ -173,11 +175,11 @@ beta1f <- function(guessvec, beta1.tune, quants) {
   Dists <- guessvec$Dists  
 
   # Set tune based on correlation
-  #Sigma <- sigma2 * exp(-1 / phi * Dists)
+  Sigma <- beta1.tune * exp(-1 / phi * Dists)
   #beta1.tune <- Sigma
 
   # Propose new beta
-  beta1.prop <- rmvnorm(1, beta1, beta1.tune)
+  beta1.prop <- rmvnorm(1, beta1, Sigma)
 
   # Get new guess
   guessvec.new <- guessvec
