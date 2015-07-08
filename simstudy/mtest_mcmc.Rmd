@@ -24,7 +24,6 @@ opts_chunk$set(message = F, fig.align = "center", warning = F, echo = F)
 
 
 ```{r info}
-source("mcmc_corr.R")
 
 # CHECK! Works for nothing
 # CHECK!  Works for beta0
@@ -50,7 +49,7 @@ x <- t(x)
 
 
 
-
+beta0 <- 0
 
 # Try for beta1
 # Issues:
@@ -60,7 +59,7 @@ beta1 <- rep(0.1, ncol(x))
 lmu <- sweep(x, 2, beta1, "*")
 lmu <- rowSums(lmu) * 1/length(beta1)
 #lmu <- apply(lmu, 1, function(x) auc(quants1, x))
-lmu <- lmu + 3
+lmu <- lmu + beta0
 
 #phi <- 0
 #beta0 <- 0
@@ -73,38 +72,71 @@ lmu <- lmu + 3
 
 
 
-```{r run}
+```{r run, eval = F}
 
+source("mcmc_corr.R")
 # Set seed
 set.seed(10)
 y <- rpois(ny, exp(lmu))
 m1 <- mcmcout(y, x, quants = quants1, niter = 50000, burnin = 0, thin = 1)
-#save(m1, file = "test_mcmc_tightpr.RData")
+save(m1, file = "test_mcmc_tightpr.RData")
 ```
 
 
+# Summary statistics for data
 
+## Acceptance probabilities
 ```{r tabs}
-
-acc1 <- cbind(names(m1$accept), m1$accept)
+load("test_mcmc_tightpr.RData")
+acc1 <- cbind(names(m1$accept), round(m1$accept, 2))
 colnames(acc1) <- c("Parameter", "Acceptance Probability")
 rownames(acc1) <- NULL
 kable(acc1)
+```
 
-m1b <- round(apply(m1$beta1, 2, mean), 2)
+## Posterior means for beta1
+```{r tabs2}
+n <- 5000
+N <- length(m1$sigma2)
+ns <- seq(n, N, by = 10)
+m1b <- round(apply(m1$beta1[ns, ], 2, mean), 2)
 m1b <- data.frame(round(quants1, 2),  m1b)
 colnames(m1b) <- c("Quantile", "Posterior mean")
 kable(m1b)
 ```
 
+## Posterior means for other parameters
+```{r tabs3}
+sigma2 <- mean(m1$sigma2[ns])
+phi <- mean(m1$phi[ns])
+beta0 <- mean(m1$beta0[ns])
+post <- cbind(c("sigma2", "phi", "beta0"), round(c(sigma2, phi, beta0), 4))
+colnames(post) <- c("Parameter", "Posterior mean")
+kable(post)
+```
 
+
+
+# Plots for convergence 
 ```{r plot}
-plot(m1$beta0)
-plot(m1$sigma2)
-plot(m1$phi)
+plot(m1$beta0, ylab = "Beta0", xlab = "Iteration")
+plot(m1$sigma2, ylab = "Sigma2", xlab = "Iteration")
+plot(m1$phi, ylab = "Phi", xlab = "Iteration")
 
-plot(m1$beta1[, 1])
-plot(m1$beta1[, 2])
+plot(m1$beta1[, 1], ylab = "Beta1_1", xlab = "Iteration")
+plot(m1$beta1[, 2], ylab = "Beta1_2", xlab = "Iteration")
+```
 
+# Plot of posterior means for beta1
+```{r plot2}
+plot(m1b[, 1], m1b[, 2], type = "l", ylim = c(0, 0.2), xlab = "Quantile", ylab = "Beta1")
+legend("topright", legend = c("Post. Mean", "95% PI", "Truth"), lty = c(1, 2, 1), col = c("black", "blue", "red"))
+sd <- apply(m1$beta1[ns, ], 2, sd)
+lb <- m1b[, 2] - 1.96 * sd
+ub <- m1b[, 2] + 1.96 * sd
+points(m1b[, 1], lb, type = "l", col = "blue", lty = 2)
 
+points(m1b[, 1], ub, type = "l", col = "blue", lty = 2)
+
+abline(h = 0.1, col = "red")
 ```
