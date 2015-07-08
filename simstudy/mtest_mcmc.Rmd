@@ -30,16 +30,24 @@ opts_chunk$set(message = F, fig.align = "center", warning = F, echo = F)
 
 
 # Set up dimensions and x
-ny <- 1000
+ny <- 2000
 na <- 1000
 set.seed(10)
 x1 <- matrix(rtruncnorm(ny * na, mean = 15, a = 0, sd = 1.5), nrow = ny)
+
+
+# Add shift to x
+shift <-  matrix(rep(runif(ny, min = -5, max = 20), each = na), ncol = na, byrow = T)
+x1 <- x1 + shift
 
 
 # Set up quantiles and x
 quants1 <- c(0.7, 0.9)
 #quants1 <- seq(0.01, 0.99, length = 10)
 quants1 <- seq(0.05, 0.95, by = 0.05)
+
+quants1 <- seq(0, 1, by = 0.02)
+
 
 x <- apply(x1, 1, quantile, probs = c(0.1, 0.25, 0.5, 0.75, 0.9))
 x <- apply(x1, 1, quantile, probs = quants1)
@@ -72,14 +80,14 @@ lmu <- lmu + beta0
 
 
 
-```{r run, eval = F}
+```{r run, eval = T}
 
 source("mcmc_corr.R")
 # Set seed
 set.seed(10)
 y <- rpois(ny, exp(lmu))
-m1 <- mcmcout(y, x, quants = quants1, niter = 50000, burnin = 0, thin = 1)
-save(m1, file = "test_mcmc_tightpr.RData")
+m1 <- mcmcout(y, x, quants = quants1, niter = 20000, burnin = 0, thin = 1)
+save(m1, file = "test_mcmc_largey.RData")
 ```
 
 
@@ -87,7 +95,7 @@ save(m1, file = "test_mcmc_tightpr.RData")
 
 ## Acceptance probabilities
 ```{r tabs}
-load("test_mcmc_tightpr.RData")
+load("test_mcmc_largey.RData")
 acc1 <- cbind(names(m1$accept), round(m1$accept, 2))
 colnames(acc1) <- c("Parameter", "Acceptance Probability")
 rownames(acc1) <- NULL
@@ -96,11 +104,11 @@ kable(acc1)
 
 ## Posterior means for beta1
 ```{r tabs2}
-n <- 5000
+n <- 10000
 N <- length(m1$sigma2)
 ns <- seq(n, N, by = 10)
-m1b <- round(apply(m1$beta1[ns, ], 2, mean), 2)
-m1b <- data.frame(round(quants1, 2),  m1b)
+m1ba <- apply(m1$beta1[ns, ], 2, mean)
+m1b <- data.frame(round(quants1, 2),  round(m1ba, 2))
 colnames(m1b) <- c("Quantile", "Posterior mean")
 kable(m1b)
 ```
@@ -129,14 +137,18 @@ plot(m1$beta1[, 2], ylab = "Beta1_2", xlab = "Iteration")
 
 # Plot of posterior means for beta1
 ```{r plot2}
-plot(m1b[, 1], m1b[, 2], type = "l", ylim = c(0, 0.2), xlab = "Quantile", ylab = "Beta1")
-legend("topright", legend = c("Post. Mean", "95% PI", "Truth"), lty = c(1, 2, 1), col = c("black", "blue", "red"))
-sd <- apply(m1$beta1[ns, ], 2, sd)
-lb <- m1b[, 2] - 1.96 * sd
-ub <- m1b[, 2] + 1.96 * sd
-points(m1b[, 1], lb, type = "l", col = "blue", lty = 2)
 
-points(m1b[, 1], ub, type = "l", col = "blue", lty = 2)
+beta1 <- m1$beta1[ns, ] 
+
+m1ba <- apply(beta1, 2, median)
+plot(m1b[, 1], m1ba, type = "l", ylim = c(0.07, 0.13), xlab = "Quantile", ylab = "Beta1")
+legend("topright", legend = c("Post. Mean", "95% PI", "Truth"), lty = c(1, 2, 1), col = c("black", "blue", "red"))
+
+
+lbub <- apply(beta1, 2, quantile, probs = c(0.025, 0.975))
+points(m1b[, 1], lbub[1, ], type = "l", col = "blue", lty = 2)
+
+points(m1b[, 1], lbub[2, ], type = "l", col = "blue", lty = 2)
 
 abline(h = 0.1, col = "red")
 ```
