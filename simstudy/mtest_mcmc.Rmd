@@ -23,6 +23,19 @@ opts_chunk$set(message = F, fig.align = "center", warning = F, echo = F)
 
 
 
+```{r}
+
+# Howard to-do
+# DONE 1. Simulate beta1 individually
+# DONE 2. Use real data
+# DONE 3. Use more complicated beta: use phi to draw beta
+# DONE 4. Random x's- check correlation in x's: correlation in simulated is very high
+# 5. Separate out median effect
+# 6. Other MV approach- book? 
+
+```
+
+
 ```{r info}
 
 # CHECK! Works for nothing
@@ -40,29 +53,70 @@ x1 <- matrix(rtruncnorm(ny * na, mean = 15, a = 0, sd = 1.5), nrow = ny)
 shift <-  matrix(rep(runif(ny, min = -5, max = 20), each = na), ncol = na, byrow = T)
 x1 <- x1 + shift
 
+fp1 <- "~/Documents/SHEDS"
+x1 <- read.csv(file.path(fp1, "sim_dates_winter.csv"))
+xall <- read.csv(file.path(fp1, "sim_dates_summer.csv"))
+x1 <- cbind(x1, xall)
+
+
+x1 <- t(x1)
+
+ny <- nrow(x1)
+na <- ncol(x1)
+
 
 # Set up quantiles and x
 quants1 <- c(0.7, 0.9)
-#quants1 <- seq(0.01, 0.99, length = 10)
+quants1 <- seq(0.01, 0.99, length = 10)
 quants1 <- seq(0.05, 0.95, by = 0.05)
 
-quants1 <- seq(0, 1, by = 0.02)
+# quants1 <- seq(0, 1, by = 0.02)
 
 
-x <- apply(x1, 1, quantile, probs = c(0.1, 0.25, 0.5, 0.75, 0.9))
+# x <- apply(x1, 1, quantile, probs = c(0.1, 0.25, 0.5, 0.75, 0.9))
 x <- apply(x1, 1, quantile, probs = quants1)
 
 
 x <- t(x)
 
 
+x <- matrix(rnorm(nrow(x) * ncol(x)), nrow = nrow(x))
+```
+
+
+
+# Generate beta1
+```{r}
+np <- ncol(x)
+seq1 <- rep(quants1, each = np)
+rows <- matrix(seq1, nrow = np, byrow = T)
+cols <- matrix(seq1, nrow = np, byrow = F)
+Dists <- abs(rows - cols)
+
+phi <- 8
+corr <- exp(-1 / phi * Dists)
+Sigma <- 0.01 * corr
+
+#set.seed(200)
+#s1 <- sample(seq(1, 10000), 1)
+s1 <- 5021
+set.seed(s1)
+beta1 <- rmvnorm(1, sigma = Sigma) 
+beta1
+beta1a <- beta1
+```
+
+
+
+
+```{r}
 
 beta0 <- 0
 
 # Try for beta1
 # Issues:
 # 1. Low acceptance probability (incorporate correlation?)
-beta1 <- rep(0.1, ncol(x))
+#beta1 <- rep(0.1, ncol(x))
 #lmu <- rowSums(sweep(x, 2, beta1, "*"))
 lmu <- sweep(x, 2, beta1, "*")
 lmu <- rowSums(lmu) * 1/length(beta1)
@@ -78,16 +132,14 @@ lmu <- lmu + beta0
 
 
 
-
-
 ```{r run, eval = T}
 
 source("mcmc_corr.R")
 # Set seed
 set.seed(10)
 y <- rpois(ny, exp(lmu))
-m1 <- mcmcout(y, x, quants = quants1, niter = 20000, burnin = 0, thin = 1)
-save(m1, file = "test_mcmc_largey.RData")
+m1 <- mcmcout(y, x, quants = quants1, niter = 25000, burnin = 0, thin = 1)
+save(m1, file = "test_mcmc_howard.RData")
 ```
 
 
@@ -95,7 +147,7 @@ save(m1, file = "test_mcmc_largey.RData")
 
 ## Acceptance probabilities
 ```{r tabs}
-load("test_mcmc_largey.RData")
+load("test_mcmc_howard.RData")
 acc1 <- cbind(names(m1$accept), round(m1$accept, 2))
 colnames(acc1) <- c("Parameter", "Acceptance Probability")
 rownames(acc1) <- NULL
@@ -106,6 +158,7 @@ kable(acc1)
 ```{r tabs2}
 n <- 10000
 N <- length(m1$sigma2)
+N <- 20000
 ns <- seq(n, N, by = 10)
 m1ba <- apply(m1$beta1[ns, ], 2, mean)
 m1b <- data.frame(round(quants1, 2),  round(m1ba, 2))
@@ -137,11 +190,10 @@ plot(m1$beta1[, 2], ylab = "Beta1_2", xlab = "Iteration")
 
 # Plot of posterior means for beta1
 ```{r plot2}
-
 beta1 <- m1$beta1[ns, ] 
 
 m1ba <- apply(beta1, 2, median)
-plot(m1b[, 1], m1ba, type = "l", ylim = c(0.07, 0.13), xlab = "Quantile", ylab = "Beta1")
+plot(m1b[, 1], m1ba, type = "l", ylim = c(-.3, 0.3), xlab = "Quantile", ylab = "Beta1")
 legend("topright", legend = c("Post. Mean", "95% PI", "Truth"), lty = c(1, 2, 1), col = c("black", "blue", "red"))
 
 
@@ -150,5 +202,7 @@ points(m1b[, 1], lbub[1, ], type = "l", col = "blue", lty = 2)
 
 points(m1b[, 1], lbub[2, ], type = "l", col = "blue", lty = 2)
 
-abline(h = 0.1, col = "red")
+#abline(h = 0.1, col = "red")
+
+points(m1b[, 1], beta1a, col = "red", type = "l")
 ```
