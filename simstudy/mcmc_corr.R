@@ -17,9 +17,9 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
   # Get guessvec
   if(is.null(guessvec)) {
     guessvec$beta0 <- 0
-    guessvec$beta1 <- rep(0.1, ncol(x))
-    guessvec$phi <- 2
-    guessvec$sigma2 <- 0.1 
+    guessvec$beta1 <- rep(0.15, ncol(x))
+    guessvec$phi <- 8
+    guessvec$sigma2 <- 0.01 
   }
   
   # Add in data
@@ -39,8 +39,9 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     beta1.tune <- tunes$beta1.tune
     phi.tune <- tunes$phi.tune
   } else{
-    beta0.tune <- 0.01
-    beta1.tune <- diag(0.0000001, nrow = np) 
+    beta0.tune <- 0.001
+    beta1.tune <- diag(0.01, nrow = np) 
+    beta1.tune <- 0.01
 
     #beta0.tune <- 0.0001
     #beta1.tune <- diag(0.000000001, nrow = np) 
@@ -52,7 +53,7 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
   }
 
   # Keep track of acceptance
-  guessvec$accept <- c(0, 0, 0)
+  guessvec$accept <- c(0, 0, rep(0, ncol(x)))
 
   # Get hyperparameters
   if(!is.null(hyperp)) {
@@ -116,12 +117,13 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
       if(i %% 1000 == 0) {
         print(i)
       }
+
       k <- k + 1
     }
   }
   # Get acceptance proportion
   accept <- guessvec$accept / niter
-  names(accept) <- c("beta0", "beta1", "phi")
+  names(accept) <- c("beta0", "phi", paste0("beta1_",1 : ncol(x) ))
 
 
   # Get history of samples
@@ -179,19 +181,41 @@ beta1f <- function(guessvec, beta1.tune, quants) {
   #beta1.tune <- Sigma
 
   # Propose new beta
-  beta1.prop <- rmvnorm(1, beta1, Sigma)
+  # beta1.prop <- rmvnorm(1, beta1, Sigma)
+
 
   # Get new guess
-  guessvec.new <- guessvec
-  guessvec.new$beta1 <- beta1.prop
+  guessvec.new <- guessvec 
+  # guessvec.new$beta1 <- beta1.prop
+  for(i in 1 : length(beta1)) {
+    # update beta1
+    beta1 <- guessvec$beta1
+	  
+    # find conditional mean and variance
+#    iSig <- chol2inv(chol(Sigma[-i, -i]))
+#    s1 <- Sigma[i, -i] %*% iSig
+#    mean1 <- s1 %*% matrix(beta1[-i])
+    #sd1 <- sqrt(Sigma[i, i] - s1 %*% Sigma[-i, i])
+    beta1.prop <- rnorm(1, mean = beta1[i], sd = beta1.tune)
+   
+    guessvec.new$beta1[i] <- beta1.prop
+   
+    # Get likelihoods
+    llhood.old <- llhood.beta1.out(guessvec, quants)
+    llhood.new <- llhood.beta1.out(guessvec.new, quants)
 
-  # Get likelihoods
-  llhood.old <- llhood.beta1.out(guessvec, quants)
-  llhood.new <- llhood.beta1.out(guessvec.new, quants)
+    # Select old vs. new guess
+    guessvec <- mhstep(guessvec, guessvec.new, llhood.old, llhood.new, j = 2 + i)
+   
+  
 
-  # Select old vs. new guess
-  guessvec <- mhstep(guessvec, guessvec.new, llhood.old, llhood.new, j = 2)
-  return(guessvec)
+  
+  }
+
+
+
+
+ return(guessvec)
 }
 
 
@@ -262,7 +286,7 @@ phif <- function(guessvec, a.phi, b.phi, phi.tune) {
   llhood.new <- llhood.new + log(phi.prop)
 
   # Select old vs. new guess
-  guessvec <- mhstep(guessvec, guessvec.new, llhood.old, llhood.new, j = 3)
+  guessvec <- mhstep(guessvec, guessvec.new, llhood.old, llhood.new, j = 2)
   return(guessvec)
 
 }
@@ -357,7 +381,7 @@ llhood.y <- function(guessvec, quants) {
 
   # Get mean of poisson distribution
   beta1b <- sweep(x, 2, beta1, "*")
-  #beta1b <-  rowSums(beta1b) * 1/length(beta1)
+  beta1b <-  rowSums(beta1b) * 1/length(beta1)
   #beta1b <- apply(beta1b, 1, function(x) auc(quants, x))
   mu <- exp(beta0 + beta1b)
   n <- length(y)
