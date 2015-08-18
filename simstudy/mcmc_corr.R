@@ -39,16 +39,16 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     beta1.tune <- tunes$beta1.tune
     phi.tune <- tunes$phi.tune
   } else{
-    beta0.tune <- 0.001
+    beta0.tune <- 0.1
     beta1.tune <- diag(0.01, nrow = np) 
-    beta1.tune <- 0.01
+    beta1.tune <- 0.8
 
     #beta0.tune <- 0.0001
     #beta1.tune <- diag(0.000000001, nrow = np) 
       
     # From howard 
     phi.tune <- 0.1
-    phi.tune <- 0.5
+    phi.tune <- 1.5
 
   }
 
@@ -63,18 +63,22 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     a.phi <- hyperp$a.phi
     b.phi <- hyperp$b.phi
   } else {
-    #sd.beta0 <- 100 
-    sd.beta0 <- 0.001
-    a.sig <- 5
-    b.sig <- 0.001
-    #a.sig <- 100
-    #b.sig <- 10
-    #a.phi <- 0.03
-    #b.phi <- 0.005
-    #a.phi <- 900
-    #b.phi <- 1000
-    a.phi <- 9
-    b.phi <- 10
+    sd.beta0 <- 100 
+    #sd.beta0 <- 0.001
+    
+    # Howard: too diffuse!
+    #a.sig <- 0.001
+    #b.sig <- 0.001
+    # Worked for me
+    a.sig <- 100
+    b.sig <- 10
+
+    # Howard: distance units 1/10??
+    a.phi <- 0.03
+    b.phi <- 0.005
+    # Worked for me
+    #a.phi <- 9
+    #b.phi <- 10
   }
   
 
@@ -122,7 +126,8 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     }
   }
   # Get acceptance proportion
-  accept <- guessvec$accept / niter
+#  accept <- guessvec$accept / niter
+  accept <- guessvec$accept
   names(accept) <- c("beta0", "phi", paste0("beta1_",1 : ncol(x) ))
 
 
@@ -177,7 +182,7 @@ beta1f <- function(guessvec, beta1.tune, quants) {
   Dists <- guessvec$Dists  
 
   # Set tune based on correlation
-  Sigma <- beta1.tune * exp(-1 / phi * Dists)
+#  Sigma <- beta1.tune * exp(-1 / phi * Dists)
   #beta1.tune <- Sigma
 
   # Propose new beta
@@ -207,7 +212,7 @@ beta1f <- function(guessvec, beta1.tune, quants) {
     # Select old vs. new guess
     guessvec <- mhstep(guessvec, guessvec.new, llhood.old, llhood.new, j = 2 + i)
    
-  
+    guessvec.new <- guessvec 
 
   
   }
@@ -240,7 +245,7 @@ sigma2f <- function(guessvec, a.sig, b.sig) {
   C2 <- chol(chol2inv(chol(C1)))
 
   # Find scaled beta1
-  gamma1 <-  beta1 %*% t(C2) 
+  gamma1 <-  t(C2) %*% t(beta1) 
   n <- length(gamma1)
 
   # Sample posterior (normal lhood, gamma prior)
