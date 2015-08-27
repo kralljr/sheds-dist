@@ -1,0 +1,117 @@
+--- 
+title: "Poisson simulation"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    theme: cosmo
+    toc_depth: 2
+---
+
+
+```{r lib, warning =F, message =F, echo = F}
+# File to test mcmc_corr.R
+library(mvtnorm)
+library(truncnorm)
+library(MESS)
+library(knitr)
+library(dplyr)
+library(mvtnorm)
+library(ggplot2)
+
+opts_chunk$set(message = F, fig.align = "center", warning = F, echo = F)
+```
+
+```{r}
+N <- 1000
+n2 <- 1000
+
+
+mean1 <- c(0, rep(0.2, 10))
+sd1 <- c(.2, rep(1.2, 10))
+sd1 <- diag(sd1)
+
+# Old cor
+cor1 <- 0.99
+cor2 <- matrix(cor1, nrow = length(mean1), ncol = length(mean1))
+cor2 <- cor2 - diag(rep(cor1, length(mean1))) + diag(1, nrow = length(mean1))
+
+# Cor based on dist
+#seq1 <- seq(0, 1, length = 11)
+#dists <- abs(outer(seq1, seq1, "-"))
+#cor1 <- exp(- 1/ 1.2 *  dists)
+
+S1 <- sd1 %*% cor2  %*% t(sd1)
+
+set.seed(88678)
+xall <- rmvnorm(N, mean = mean1, sigma = S1)
+xall <- exp(xall)
+
+#mn1 <- apply(xall, 2, mean)
+#sd1 <- apply(xall, 2, sd)
+#xall <- sweep(xall, 2, mn1)
+#xall <- sweep(xall, 2, sd1, "/")
+
+
+# Use real data
+fp1 <- "~/Documents/SHEDS"
+xwint <- read.csv(file.path(fp1, "sim_dates_winter.csv"))
+xsumm <- read.csv(file.path(fp1, "sim_dates_summer.csv"))
+x1 <- t(cbind(xsumm, xwint))
+x1 <- x1[!duplicated(x1), ]
+seq1 <- seq(0.1, .9, length = 10)
+
+
+samps <- sample(seq(1, nrow(x1)), 50000, replace = T)
+x1 <- x1[samps, ]
+
+xall <- t(apply(x1, 1, quantile, probs = seq1))
+xall <- xall * 2
+
+b1 <- 0.5
+b1 <- 0.005
+beta1 <- rep(b1, ncol(xall))
+betax <- sweep(xall, 2, beta1, "*")
+mu <- 0 + rowSums(betax)
+
+#mu <- 5 + xall[, "x11"] * 0.5
+
+colnames(xall) <- paste0("x", seq(1, ncol(xall)))
+eqn1 <- paste("y~", paste(colnames(xall), collapse = "+"))
+glm1 <- data.frame(matrix(nrow = ncol(xall) * n2, ncol = 2))
+k <- 1
+l <- ncol(xall)
+for(i in 1 : n2) {
+#	print(c(i, k, l))
+	y <- rpois(nrow(xall), exp(mu))
+	fam1 <- "poisson"
+
+	#y <- rnorm(N, mean = mu)
+	#fam1 <- "gaussian"
+
+	dat1 <- data.frame(y, xall)
+	fullglm <- glm(eqn1, data = dat1, family = fam1)
+	glmboth <- summary(fullglm)$coef[-1,]
+	glm1$Type[k : l] <- rownames(glmboth)
+	glm1$Rep[k : l] <- rep(i, ncol(xall))
+	glm1[k : l, 1 : 2] <- glmboth[, c(1, 2)]
+	k <- l + 1
+	l <- k + ncol(xall) - 1	
+}
+
+
+# Create output matrix
+glmall <- glm1
+colnames(glmall)[1 : 2] <- c("Est", "SE")
+
+glmall <- mutate(glmall, RR = exp(Est), LB = Est - 1.96 * SE, 
+    UB = Est + 1.96 * SE, rrLB = exp(LB), rrUB = exp(UB))
+
+
+ggplot(glmall, aes(x = Rep, y = Est, colour = Type)) + 
+    geom_pointrange(aes(ymin = LB, ymax = UB)) +
+    facet_wrap( ~ Type) 
+
+gb <- group_by(glmall, Type)
+summarise_each(gb, funs(mean), Est) 
+```
