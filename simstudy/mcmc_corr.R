@@ -39,16 +39,17 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     beta1.tune <- tunes$beta1.tune
     phi.tune <- tunes$phi.tune
   } else{
+    # for simulated data
     beta0.tune <- 0.1
-    beta1.tune <- diag(0.01, nrow = np) 
     beta1.tune <- 0.8
-
-    #beta0.tune <- 0.0001
-    #beta1.tune <- diag(0.000000001, nrow = np) 
+    phi.tune <- 1.5
+    
+    beta0.tune <- 0.01
+    beta1.tune <- 0.5
       
     # From howard 
-    phi.tune <- 0.1
-    phi.tune <- 1.5
+    #phi.tune <- 0.5
+
 
   }
 
@@ -63,8 +64,8 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     a.phi <- hyperp$a.phi
     b.phi <- hyperp$b.phi
   } else {
-    sd.beta0 <- 100 
-    #sd.beta0 <- 0.001
+    #sd.beta0 <- 100 
+    sd.beta0 <- 0.001
     
     # Howard: too diffuse!
     #a.sig <- 0.001
@@ -74,11 +75,11 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     b.sig <- 10
 
     # Howard: distance units 1/10??
-    a.phi <- 0.03
-    b.phi <- 0.005
+    #a.phi <- 0.03
+    #b.phi <- 0.005
     # Worked for me
-    #a.phi <- 9
-    #b.phi <- 10
+    a.phi <- 9
+    b.phi <- 10
   }
   
 
