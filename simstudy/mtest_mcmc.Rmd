@@ -29,7 +29,10 @@ opts_chunk$set(message = F, fig.align = "center", warning = F, echo = F)
 # DONE 1. Simulate beta1 individually
 # DONE 2. Use real data
 # DONE 3. Use more complicated beta: use phi to draw beta
+# 3b. Use a functional beta
 # DONE 4. Random x's- check correlation in x's: correlation in simulated is very high
+
+
 # 5. Separate out median effect
 # 6. Other MV approach- book? 
 
@@ -80,31 +83,55 @@ x <- apply(x1, 1, quantile, probs = quants1)
 x <- t(x)
 
 
-x <- matrix(rnorm(nrow(x) * ncol(x)), nrow = nrow(x))
+# Try and scale?
+mnx <- apply(x, 2, mean)
+x <- sweep(x, 2, mnx)
+sdx <- apply(x, 2, sd)
+x <- sweep(x, 2, sdx, "/")
+
+#Random x
+n1 <- nrow(x)
+n1 <- 2000
+set.seed(21649)
+#x <- matrix(rnorm(n1 * ncol(x)), nrow = n1)
 ```
 
 
 
 # Generate beta1
 ```{r}
+
+# Get dists
 np <- ncol(x)
 seq1 <- rep(quants1, each = np)
 rows <- matrix(seq1, nrow = np, byrow = T)
 cols <- matrix(seq1, nrow = np, byrow = F)
 Dists <- abs(rows - cols)
 
-phi <- 8
+
+# Set phi and sigma
+phi <- 2 #1 works
 corr <- exp(-1 / phi * Dists)
-Sigma <- 0.01 * corr
+Sigma <- 0.1 * corr
 
 #set.seed(200)
 #s1 <- sample(seq(1, 10000), 1)
+
+# Version that works?
 s1 <- 5021
+
+s1 <- sample(seq(1, 10000), 1)
+print(s1)
+
+s1 <- 8342
 set.seed(s1)
 beta1 <- rmvnorm(1, sigma = Sigma) 
 beta1
 beta1a <- beta1
+
+plot(quants1, beta1a, ylim = c(0, 1))
 ```
+
 
 
 
@@ -116,7 +143,9 @@ beta0 <- 0
 # Try for beta1
 # Issues:
 # 1. Low acceptance probability (incorporate correlation?)
-#beta1 <- rep(0.1, ncol(x))
+beta1 <- rep(0.1, ncol(x))
+beta1a <- beta1
+
 #lmu <- rowSums(sweep(x, 2, beta1, "*"))
 lmu <- sweep(x, 2, beta1, "*")
 lmu <- rowSums(lmu) * 1/length(beta1)
@@ -135,10 +164,20 @@ lmu <- lmu + beta0
 ```{r run, eval = T}
 
 source("mcmc_corr.R")
+
+# Give guessvec
+guessvec1 <- list()
+guessvec1$beta0 <- 1
+b1 <- t(matrix(rep(1, length(quants1))))
+guessvec1$beta1 <- b1
+guessvec1$phi <- .2
+guessvec1$sigma2 <- .01
+
 # Set seed
 set.seed(10)
 y <- rpois(ny, exp(lmu))
-m1 <- mcmcout(y, x, quants = quants1, niter = 25000, burnin = 0, thin = 1)
+N <- 10000
+m1 <- mcmcout(y, x, quants = quants1, niter = N, burnin = 0, thin = 1, guessvec = guessvec1)
 save(m1, file = "test_mcmc_howard.RData")
 ```
 
@@ -148,7 +187,7 @@ save(m1, file = "test_mcmc_howard.RData")
 ## Acceptance probabilities
 ```{r tabs}
 load("test_mcmc_howard.RData")
-acc1 <- cbind(names(m1$accept), round(m1$accept, 2))
+acc1 <- cbind(names(m1$accept), round(m1$accept / N, 2))
 colnames(acc1) <- c("Parameter", "Acceptance Probability")
 rownames(acc1) <- NULL
 kable(acc1)
@@ -156,13 +195,12 @@ kable(acc1)
 
 ## Posterior means for beta1
 ```{r tabs2}
-n <- 10000
-N <- length(m1$sigma2)
-N <- 20000
+n <- 7500
+#N <- length(m1$sigma2)
 ns <- seq(n, N, by = 10)
 m1ba <- apply(m1$beta1[ns, ], 2, mean)
-m1b <- data.frame(round(quants1, 2),  round(m1ba, 2))
-colnames(m1b) <- c("Quantile", "Posterior mean")
+m1b <- data.frame(round(quants1, 2),  round(m1ba, 2), as.numeric(round(beta1a, 2)))
+colnames(m1b) <- c("Quantile", "Posterior mean", "Truth")
 kable(m1b)
 ```
 
@@ -192,8 +230,12 @@ plot(m1$beta1[, 2], ylab = "Beta1_2", xlab = "Iteration")
 ```{r plot2}
 beta1 <- m1$beta1[ns, ] 
 
+
+ymin <- -.3
+ymax <- .3
+
 m1ba <- apply(beta1, 2, median)
-plot(m1b[, 1], m1ba, type = "l", ylim = c(-.3, 0.3), xlab = "Quantile", ylab = "Beta1")
+plot(m1b[, 1], m1ba, type = "l", ylim = c(ymin, ymax), xlab = "Quantile", ylab = "Beta1")
 legend("topright", legend = c("Post. Mean", "95% PI", "Truth"), lty = c(1, 2, 1), col = c("black", "blue", "red"))
 
 
