@@ -71,8 +71,8 @@ getx <- function(ny, na, argvals1, typex = "shift", mean1 = 15, sd1 = 1.5, rate1
   
   
   # Find mean
-  xM <- apply(xall, 2, mean)
-  xall <- sweep(xall, 2, xM)
+ xM <- apply(xall, 2, mean)
+ # xall <- sweep(xall, 2, xM)
   
   # Find quantiles
   x1 <- apply(xall, 2, quantile, probs = argvals1)
@@ -225,14 +225,14 @@ simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, ar
   } else if (disttype == "pois") {
     fmod1 <- fglm1(x1, y1, argvals1, ns1)
 
-    beta3 <- summary(glm(eval(eqn1), data = dat1, family = "quasipoisson"))$coef[-1, ] 
+    beta3 <- summary(glm(eval(eqn1), data = dat1, family = "poisson"))$coef[-1, ] 
   
   
 
     # Do univariate regression
     for(i in 2 : ncol(dat1)) {
       eqn1 <- paste("y ~", colnames(dat1)[i])
-      beta2[i- 1, ] <- summary(glm(eval(eqn1), data = dat1, family = "quasipoisson"))$coef[-1, ]
+      beta2[i- 1, ] <- summary(glm(eval(eqn1), data = dat1, family = "poisson"))$coef[-1, ]
     }
   
   }
@@ -303,7 +303,7 @@ fglm1 <- function(x1, y1, argvals1, ns1) {
   dat1 <- list("x" = xfn, "df" = y1) 
   
   
-  fre1 <- fregre.glm(form1, family = "quasipoisson", data = dat1,
+  fre1 <- fregre.glm(form1, family = "poisson", data = dat1,
     basis.x = basx, basis.b = basb, CV = F)
   fre1
 }
