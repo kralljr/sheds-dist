@@ -120,11 +120,11 @@ plotbeta1 <- function(sim1, argvals1, cols = NULL, disttype = "norm", main1 = NU
     if(is.null(main1)) {
       main1 <- "Beta function"
     }
-    
+   cols[1] <- "white" 
     p1 <- plot(fd1, xlab = "Quantile", ylab = "Beta",
-      ylim = c(-1, 3), main = main1, col = cols[1])
-    plot(fdlb, add = T, col = cols[1], lty = 2)
-    plot(fdub, add = T, col = cols[1], lty = 2)
+      ylim = c(-0.5, 1), main = main1, col = cols[1])
+    #plot(fdlb, add = T, col = cols[1], lty = 2)
+    #plot(fdub, add = T, col = cols[1], lty = 2)
 
     #p1 <- plot(lmf$beta.l$x, xlab = "Quantile", ylab = "Beta",
      # main = "Beta function", col = cols[1])
@@ -148,10 +148,10 @@ plotbeta1 <- function(sim1, argvals1, cols = NULL, disttype = "norm", main1 = NU
 
   
   # Add points for traditional regression betas
-  #points(argvals2 + 0.01, beta3, col = cols[3], pch = 8)
+  points(argvals2 + 0.01, beta3, col = cols[3], pch = 8)
   lbs <- beta3 - sim1$beta3[, 2] * 1.96
   ubs <- beta3 + sim1$beta3[, 2] * 1.96
-  #segments(y0 = lbs, x0 = argvals2 + 0.01, y1 = ubs, col = cols[3], lty = 1)
+  segments(y0 = lbs, x0 = argvals2 + 0.01, y1 = ubs, col = cols[3], lty = 1)
 
   
   points(argvalslr - 0.01, beta2, col = cols[4], pch = 16)  
