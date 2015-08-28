@@ -38,7 +38,7 @@ source("sim_study_display.R")
 
 Jenna Krall
 
-5/28/15
+Revised 8/28/15
 
 The current project is aimed at using distributions of exposure to outdoor pollution as predictors in a health effects regression model.  While previous studies only had access to daily summaries of exposure (e.g. daily mean), recently simulated exposure data has become available and provides a distribution of exposures for each day.  Having exposure distributions for each day will allow us to determine the changes in exposure distribution that are associated with the greatest increases in adverse health outcomes.  Additionally, we can determine the associations between quantiles of the exposure distribution and adverse health outcomes.  This current analysis is focused on the question of how quantiles of the exposure distribution are associated with adverse health outcomes.  Knowing whether some quantiles are more associated with adverse health outcomes can help to develop more targeted public health campaigns.  For example, if the 20\% quantile is most associated with adverse health outcomes, then those individuals who generally have lower exposures to outdoor pollution should be targeted.
 
@@ -49,7 +49,7 @@ This document includes a preliminary simulation study to determine whether using
 ```{r argv}
 naG <- 100
 na1 <- 20
-argvals2 <- seq(0.1, 0.9, length = na1)
+argvals2 <- seq(0.05, 0.95, length = na1)
 ny <- 100
 ns2 <- 4
 
@@ -259,13 +259,13 @@ for(xi in 1 : 6) {
 
 
 
-
+ag1 <- argvals2
   
 # For each beta
 for(bi in 1 : 6) {
   par(mfrow = c(2, 3))
     
-  for(xi in 1 : 6) {
+  for(xi in 1 : 4) {
     #print(c(bi,  xi)) 
     #if (! (xi == 1 & bi > 1)) {
       if(bi < 5) {
@@ -294,6 +294,37 @@ for(bi in 1 : 6) {
 
 
 
+
+
 ```
 
 
+
+
+
+
+```{r}
+# try by hand
+bf <- getbeta("x2")
+
+
+ag1 <- c(0.1, 0.25, 0.5, 0.75, 0.9)
+ag1 <- argvals2
+
+betas <- bf(ag1)
+
+xuse <- t(apply(x1use[[4]]$xall, 1, quantile, probs = ag1))
+linfun <- rowSums(sweep(xuse, 2, betas, "*"))
+mu <- exp(linfun)
+set.seed(10)
+y <- rpois(ny, mu)
+
+dat1 <- data.frame(y, xuse)
+p1 <-  paste0("x", seq(1, ncol(dat1) - 1))
+colnames(dat1)[-1] <- p1
+eqn1 <- paste("y ~ ", paste(p1, collapse = " + "))
+glm1 <- glm(eval(eqn1), data = dat1, family = "poisson")
+gc1 <- glm1$coef[-1]
+plot(ag1, gc1, ylim = c(-0.1, .8))
+points(ag1, betas, col = "red")
+```
