@@ -112,12 +112,12 @@ getbeta <- function(type, val = 0) { function(x) {
   } else if (type == "x2") {
     #val + 1/4 * (x - 0.5)^2 
 
-    val + 1/2 * (x - 0.5)^2 
+    val + 1/2 *  (x - 0.5)^2 
   # Beta larger for low quantiles
   } else if (type == "low") {
     #val + 1 / 10 * exp(x * -7)
 
-    val + 1 / 8 * exp(x * -7)
+    val + 1 / 5 * exp(x * -7)
   # Beta larger for high quantiles
   } else if (type == "high") {
     #val + 1 / 10000 * exp(x * 7) 	
@@ -141,8 +141,8 @@ gety <- function(argvals1, betaM, betaf, x1, disttype, sd1 = 0.01) {
 
 
     # find linear function of x and beta	
-    linf <- sweep(xvar1, 1, beta1, "*")
-    linf <- apply(linf, 2, function(x) auc(argvals1, x))
+    linf <- rowSums(sweep(t(xvar1), 2, beta1, "*"))
+    #linf <- apply(linf, 2, function(x) auc(argvals1, x))
 
   # If other is truth
   } else{
