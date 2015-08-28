@@ -123,8 +123,7 @@ plotbeta1 <- function(sim1, argvals1, cols = NULL, disttype = "norm", main1 = NU
    cols[1] <- "white" 
     #p1 <- plot(fd1, xlab = "Quantile", ylab = "Beta",
     #  ylim = c(-0.5, 1), main = main1, col = cols[1])
-   plot(1, 1, type = "n", xlab = "Quantile", ylab = "Beta", 
-	ylim = c(-0.5, 1), main = main1) 
+   plot(.5, .5, xlim = c(0, 1), type = "n", xlab = "Quantile", ylab = "Beta", ylim = c(-0.5, 1), main = main1) 
    #plot(fdlb, add = T, col = cols[1], lty = 2)
     #plot(fdub, add = T, col = cols[1], lty = 2)
 
