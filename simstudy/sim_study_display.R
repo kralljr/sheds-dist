@@ -93,37 +93,39 @@ plotbeta1 <- function(sim1, argvals1, cols = NULL, disttype = "norm", main1 = NU
   betaf <- sim1$betaf
 
   if(disttype == "norm") {
-    lmf <- sim1$fmod1
+    #lmf <- sim1$fmod1
     # Specify functional beta
-    fd1 <- lmf$freg
+    #fd1 <- lmf$freg
 
     # Get std for fun beta
-    betafstd <- lmf$betafstd
-    betafstd <- betafstd$betastderrlist[[2]]
+    #betafstd <- lmf$betafstd
+    #betafstd <- betafstd$betastderrlist[[2]]
 
     # Specify functional beta and plot
-    betaest <- fd1$betaestlist[[2]]
-    betaest <- betaest$fd
-    p1 <- plotbeta(betaest, betafstd, argvals1) 
+    #betaest <- fd1$betaestlist[[2]]
+    #betaest <- betaest$fd
+    #p1 <- plotbeta(betaest, betafstd, argvals1) 
     
     plot(1, 1, type = "n", ylim = c(-.1, .3), xlim = c(0, 1),
       xlab = "Quantile", ylab = "Beta", 
       main = "Beta function", col = cols[1])
   } else if(disttype == "pois") {
     basis1 <- sim1$basis1
-    lmf <- sim1$fmod1
-    coef1 <- summary(lmf)$coef[-c(1,2), ]
-    fd1 <- fd(coef1[, 1], basis1)
-    fdlb <- fd(coef1[, 1] - 1.96 * coef1[, 2], basis1)
-    fdub <- fd(coef1[, 1] + 1.96 * coef1[, 2], basis1)
+    #lmf <- sim1$fmod1
+    #coef1 <- summary(lmf)$coef[-c(1,2), ]
+    #fd1 <- fd(coef1[, 1], basis1)
+    #fdlb <- fd(coef1[, 1] - 1.96 * coef1[, 2], basis1)
+    #fdub <- fd(coef1[, 1] + 1.96 * coef1[, 2], basis1)
     
     if(is.null(main1)) {
       main1 <- "Beta function"
     }
    cols[1] <- "white" 
-    p1 <- plot(fd1, xlab = "Quantile", ylab = "Beta",
-      ylim = c(-0.5, 1), main = main1, col = cols[1])
-    #plot(fdlb, add = T, col = cols[1], lty = 2)
+    #p1 <- plot(fd1, xlab = "Quantile", ylab = "Beta",
+    #  ylim = c(-0.5, 1), main = main1, col = cols[1])
+   plot(1, 1, type = "n", xlab = "Quantile", ylab = "Beta", 
+	ylim = c(-0.5, 1), main = main1) 
+   #plot(fdlb, add = T, col = cols[1], lty = 2)
     #plot(fdub, add = T, col = cols[1], lty = 2)
 
     #p1 <- plot(lmf$beta.l$x, xlab = "Quantile", ylab = "Beta",
