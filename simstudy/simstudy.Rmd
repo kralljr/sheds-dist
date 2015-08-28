@@ -147,7 +147,7 @@ xall <- read.csv(file.path(fp1, "sim_dates_winter.csv"))
 x1$xall <-  as.matrix(xall)
 
 xM <- apply(xall, 2, mean)
-xall <- sweep(xall, 2, xM)
+#xall <- sweep(xall, 2, xM)
 
 x1$x1 <- apply(xall, 2, quantile, probs = argvals2)
 
@@ -179,7 +179,7 @@ x1$xall <-  as.matrix(xall)
 
 
 xM <- apply(xall, 2, mean)
-xall <- sweep(xall, 2, xM)
+#xall <- sweep(xall, 2, xM)
 
 x1$x1 <- apply(xall, 2, quantile, probs = argvals2)
 x1$xfn <- getxfn(x1$x1, argvals2, ns1 = ns2) 
@@ -275,7 +275,7 @@ for(bi in 1 : 6) {
 	tb2 <- qbs[[bi - 4]]
         tb3 <- paste0("Quantiles: ", paste(names(tb2), collapse = ", "))
       }
-      sim1 <- simout(x1use[[xi]], argvals2, betaM = .01, argvalslr = ag1, typeb = tb2, 
+      sim1 <- simout(x1use[[xi]], argvals2, betaM = 0, argvalslr = ag1, typeb = tb2, 
         sd1 = sd2, disttype = disttype1, val1 = 0)
     #}
       main2 <- paste0("X = ", nx[xi], ", Beta = ", tb3)
