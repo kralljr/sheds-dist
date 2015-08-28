@@ -110,16 +110,19 @@ getbeta <- function(type, val = 0) { function(x) {
   
   # Beta increases for lower & higher quantiles
   } else if (type == "x2") {
-    val + 1/4 * (x - 0.5)^2 
+    #val + 1/4 * (x - 0.5)^2 
 
+    val + 1/2 * (x - 0.5)^2 
   # Beta larger for low quantiles
   } else if (type == "low") {
-    val + 1 / 10 * exp(x * -7)
+    #val + 1 / 10 * exp(x * -7)
 
+    val + 1 / 8 * exp(x * -7)
   # Beta larger for high quantiles
   } else if (type == "high") {
-    val + 1 / 10000 * exp(x * 7) 	
+    #val + 1 / 10000 * exp(x * 7) 	
 
+    val + 1 / 5000 * exp(x * 7) 	
   # Beta not specified  
   } else {
     stop("Beta type not recognized")
@@ -223,8 +226,8 @@ simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, ar
 
 
   } else if (disttype == "pois") {
-    fmod1 <- fglm1(x1, y1, argvals1, ns1)
-
+    #fmod1 <- fglm1(x1, y1, argvals1, ns1)
+    fmod1 <- NULL
     beta3 <- summary(glm(eval(eqn1), data = dat1, family = "poisson"))$coef[-1, ] 
   
   
