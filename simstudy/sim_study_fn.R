@@ -189,7 +189,7 @@ gety <- function(argvals1, betaM, betaf, x1, disttype, sd1 = 0.01) {
 
 
 
-simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, argvalslr = argvals1, val1 = 1,...) {
+simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, argvalslr = argvals1, val1 = 1, std = F,...) {
   # Get function of beta
   if(class(typeb) != "numeric") {
     betaf <- getbeta(typeb, val = val1)
@@ -208,6 +208,16 @@ simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, ar
   if(length(argvalslr) > 1) {
     xmat <- t(xmat)
   }
+
+  # Standardize?
+  if(std) {
+   mn1 <- apply(xmat, 2, mean)
+   sd1 <- apply(xmat, 2, sd)
+   xmat <- sweep(xmat, 2, mn1, "-")
+   xmat <- sweep(xmat, 2, sd1, "/")  
+  }
+
+
   dat1 <- data.frame(y1, xmat)
 
   # do multivariate regression
