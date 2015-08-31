@@ -189,7 +189,7 @@ gety <- function(argvals1, betaM, betaf, x1, disttype, sd1 = 0.01) {
 
 
 
-simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, argvalslr = argvals1, val1 = 1, std = F,...) {
+simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, argvalslr = argvals1, val1 = 1, std = F, quants = F,...) {
   # Get function of beta
   if(class(typeb) != "numeric") {
     betaf <- getbeta(typeb, val = val1)
@@ -204,9 +204,13 @@ simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, ar
 
   # Traditional univariate and multivariate regression
   # Set up data frame
-  xmat <- apply(x1$xall, 2, quantile, probs = argvalslr )
-  if(length(argvalslr) > 1) {
-    xmat <- t(xmat)
+  if(!quants) {
+	  xmat <- apply(x1$xall, 2, quantile, probs = argvalslr )
+	  if(length(argvalslr) > 1) {
+		  xmat <- t(xmat)
+	  }
+  }else{
+	  xmat <- t(x1$x1)
   }
 
   # Standardize?
