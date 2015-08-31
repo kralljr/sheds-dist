@@ -22,6 +22,7 @@ library(MESS)
 library(refund)
 
 fp1 <- "~/Documents/SHEDS"
+fp2 <- "~/Dropbox/SHEDS/data"
 opts_chunk$set(message = F, fig.align = "center", warning = F, echo = F)
 
 eval1 <- T
@@ -136,20 +137,24 @@ plotallx(x1, argvals2)
 
 ## True exposures
 
-To demonstrate the simulation study using true exposures, we separately used 122 days of data from December 1999- March 2000 for winter exposures and 122 days of data from May 2000 - August 2000 for summer exposures from the scaled up Atlanta SHEDS data.  The data were scaled up from ZCTAs by sampling from each ZCTA proportional to its population (with the largest ZCTA, 30044, sampling all 100 individuals).  There were 193 ZCTAs in the file.  
+
+The Atlanta SHEDS data were scaled up from ZCTAs by sampling from each ZCTA proportional to its population (with the largest ZCTA, 30044, sampling all 100 individuals).  There were 193 ZCTAs in the file.  
 
 
-## Winter exposures
 
 ```{r wtrue, fig.height = figh1, fig.width = figw1}
-xall <- read.csv(file.path(fp1, "sim_dates_winter.csv"))
 
-x1$xall <-  as.matrix(xall)
+#Detrend date?
+xall <- read.csv(file.path(fp2, "SHEDS_pm_atl_quants.csv"))[, -1]
+xall <-  t(as.matrix(xall))
+
+x1 <- list()
+x1$xall <- xall
 
 xM <- apply(xall, 2, mean)
 #xall <- sweep(xall, 2, xM)
 
-x1$x1 <- apply(xall, 2, quantile, probs = argvals2)
+x1$x1 <- (xall)
 
 
 
@@ -161,39 +166,9 @@ x1$xM <- xM
 
 plotallx(x1, argvals2) 
 
-xwtrue <- x1
+xtrue <- x1
 
 ```
-
-## Summer exposures
-
-**Note: We eliminated exposures for June 2, 2000, which had many exposures close to 160 from one ZCTA.** 
-
-```{r strue, fig.height = figh1, fig.width = figw1}
-xall <- read.csv(file.path(fp1, "sim_dates_summer.csv"))
-
-xall <- xall[, -399]
-
-x1$xall <-  as.matrix(xall)
-
-
-
-xM <- apply(xall, 2, mean)
-#xall <- sweep(xall, 2, xM)
-
-x1$x1 <- apply(xall, 2, quantile, probs = argvals2)
-x1$xfn <- getxfn(x1$x1, argvals2, ns1 = ns2) 
-x1$basis1 <- x1$xfn$basis1
-x1$xfn <- x1$xfn$xfn
-x1$xM <- xM
-
-
-plotallx(x1, argvals2) 
-
-xstrue <- x1
-
-```
-
 
 # Beta functions
 
@@ -231,7 +206,7 @@ To compare our results with more traditional approaches, we fit the quantiles us
 ag1 <- c(0.1, 0.25, 0.5, 0.75, 0.9)
 ny <- 1000
 tx <- c("shift", "longr", "longl", "wide", "wtrue", "strue")
-nx <- c("Shift", "Long right", "Long left", "Wide", "True Winter", "True Summer")
+nx <- c("Shift", "Long right", "Long left", "Wide", "True PM")
 
 tb <- c("constant", "x2", "low", "high")
 
@@ -244,55 +219,114 @@ qbs <- list(qb1, qb2)
 
 x1use <- list()
 # For each x
-for(xi in 1 : 6) {
+for(xi in 1 : 5) {
 
   if(xi < 5) {
     x1use[[xi]] <- getx(ny, naG, argvals2, typex = tx[xi], ns1 = ns2)
   } else if (xi == 5){  
-    x1use[[xi]] <- xwtrue
-  } else {
-    x1use[[xi]] <- xstrue
-
-  }
-}
+    x1use[[xi]] <- xtrue
+}}
 
 
 
 
 ag1 <- argvals2
   
-# For each beta
-for(bi in 1 : 6) {
-  par(mfrow = c(2, 3))
-    
-  for(xi in 1 : 4) {
-    #print(c(bi,  xi)) 
-    #if (! (xi == 1 & bi > 1)) {
-      if(bi < 5) {
-        tb2 <- tb[bi]
-        tb3 <- tb2  
-      }else{
-	tb2 <- qbs[[bi - 4]]
-        tb3 <- paste0("Quantiles: ", paste(names(tb2), collapse = ", "))
-      }
-      sim1 <- simout(x1use[[xi]], argvals2, betaM = 0, argvalslr = ag1, typeb = tb2, 
-        sd1 = sd2, disttype = disttype1, val1 = 0)
-    #}
-      main2 <- paste0("X = ", nx[xi], ", Beta = ", tb3)
-      plotbeta1(sim1, argvals2, argvalslr = ag1, disttype = disttype1, 
-       main1 = main2)
+# for each reasonable comb
+tb2b <- c("constant", "high", "low", "high", "low", "x2", "high", "low", "x2")
+xi2a <- c("shift", "longr", "longl", "wide", "wide", "wide", "true", "true", "true")
+xi2b <- c(1, 2, 3, 4, 4, 4, 5, 5, 5)
 
-  }
 
+# Get true betas
+for(i in 1 : length(tb2b)) {
+	gb1 <- getbeta(tb2b[i])
+	betas <- gb1(argvals2)
+
+        tb2 <- tb2b[i]
+        type1 <- rep(paste(tb2, ":", xi2a[i]), length(betas))
+        data1 <- data.frame(argvals2, betas, type1)
+        colnames(data1) <- c("quant", "beta", "Type1")	
+	
+	if(i == 1) {
+	   datb <- data1
+	}else{
+           datb <- full_join(datb, data1)
+	}
 }
 
 
+cn <- c("X", "Est", "SE", "Zval", "Pval", "Type1", "Reg")
+for(sall in 1 : length(xi2b)) {
+  tb2 <- tb2b[sall]
+  tb3 <- tb2
+  xi2 <- xi2b[sall]
+
+
+  #inflate xs
+  xuse1 <- x1use[[xi2]]
+  # nanograms
+  #xuse1$xall <- xuse1$xall * 1000
+
+
+  sim1 <- simout(xuse1, argvals2, betaM = 0, argvalslr = ag1, typeb = tb2, 
+    sd1 = sd2, disttype = disttype1, val1 = 0, quants = F, std = T)
+
+
+   x <- as.numeric(rownames(sim1$beta2))
+   type1 <- rep(paste(tb2, ":", xi2a[sall]), length(x))
+   type2 <- rep("Univariate", length(x))
+   x1 <- data.frame(x, sim1$beta2, type1, type2)
+   colnames(x1) <- cn
+
+   if(sall == 1) {
+     xfull <- x1
+   }else{
+     xfull <- full_join(x1, xfull)
+   }
+
+   x <- as.numeric(rownames(sim1$beta3))
+   type2 <- rep("Multivariate", length(x))
+   x2 <- data.frame(x, sim1$beta3, type1, type2)
+   colnames(x2) <- cn
+
+   xfull <- full_join(x2, xfull)
+}
+
+
+# get upper and lower CI
+xfull$LB <- xfull$Est - 1.96 * xfull$SE
+xfull$UB <- xfull$Est + 1.96 * xfull$SE
+
+lb1 <- -0.5
+ub1 <- 0.5
+
+xfull$LB2 <- xfull$LB
+xfull$LB2[xfull$LB2 < lb1] <- -Inf 
+
+xfull$UB2 <- xfull$UB
+xfull$UB2[xfull$UB2 > ub1] <- Inf 
+
+
+# Fix order
+xfull$Reg <- factor(xfull$Reg, levels = c("Univariate", "Multivariate"))
+
+
+#Plot all
+pd <- position_dodge(0.05)
+cols <- brewer.pal(3,  "Dark2")[1 : 2]
 
 
 
-
-
-
+ggplot() +xlab("Quantile") + ylab("Beta estimate") +
+       geom_line(data = datb, aes(x = quant, y = beta)) + 
+      geom_hline(y = 0, linetype = 2, color = "grey") +
+      geom_pointrange(data = xfull, aes(x = X, y = Est,color = Reg, 
+	ymin = LB2, ymax = UB2), position = pd, width = 0) +
+       theme_bw() +
+      scale_y_continuous(limits = c(lb1, ub1)) + 
+      scale_color_manual(name = "", values = cols) +
+      facet_wrap(~ Type1)
 
 
 
@@ -303,21 +337,40 @@ for(bi in 1 : 6) {
 
 
 
-```{r}
+```{r, eval = F}
+#8/31/15
+# stdize, don't scale
+
 # try by hand
-bf <- getbeta("x2")
+bf <- getbeta("high")
 
 
 ag1 <- c(0.1, 0.25, 0.5, 0.75, 0.9)
 ag1 <- argvals2
 
-betas <- bf(ag1)
+betas1 <- bf(ag1) 
 
-xuse <- t(apply(x1use[[4]]$xall, 1, quantile, probs = ag1))
-linfun <- rowSums(sweep(xuse, 2, betas, "*"))
-mu <- exp(linfun)
+xuse1 <- x1use[[4]]$xall * 10 
+xuse <- t(apply(xuse1,  2, quantile, probs = ag1))
+
+#stdize
+mn1 <- apply(xuse, 2, mean)
+sd1 <- apply(xuse, 2, sd)
+#xuse <- sweep(xuse, 2, mn1, "-")
+#xuse <- sweep(xuse, 2, sd1, "/")
+
+
+linfun <- 1 / length(ag1) * rowSums(sweep(xuse, 2, betas1, "*"))
 set.seed(10)
-y <- rpois(ny, mu)
+y <- rpois(ny, exp(linfun))
+
+#check reality
+meds <- apply(xuse1, 2, median)
+summary(linfun / meds)
+
+glm1 <- glm(y ~ -1 + meds, family = "poisson")
+exp(glm1$coef * 8)
+
 
 dat1 <- data.frame(y, xuse)
 p1 <-  paste0("x", seq(1, ncol(dat1) - 1))
@@ -325,6 +378,11 @@ colnames(dat1)[-1] <- p1
 eqn1 <- paste("y ~ ", paste(p1, collapse = " + "))
 glm1 <- glm(eval(eqn1), data = dat1, family = "poisson")
 gc1 <- glm1$coef[-1]
-plot(ag1, gc1, ylim = c(-0.1, .8))
-points(ag1, betas, col = "red")
+plot(ag1, gc1, ylim = c(-0.5, .5))
+points(ag1, betas1, col = "red")
+sglm1 <- summary(glm1)$coef[-1, ]
+lb <- sglm1[, 1] - 1.96 * sglm1[, 2]
+
+ub <- sglm1[, 1] + 1.96 * sglm1[, 2]
+segments(x0 = ag1, y0 = lb, y1 = ub, col = 1)
 ```
