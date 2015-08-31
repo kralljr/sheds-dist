@@ -106,27 +106,30 @@ getxfn <- function(xvar1, argvals1, ns1 = 15) {
 getbeta <- function(type, val = 0) { function(x) {
   # Beta constant over quantiles
   if(type == "constant") {
-    rep(val, length = length(x))
+    b1 <- rep(val, length = length(x))
   
   # Beta increases for lower & higher quantiles
   } else if (type == "x2") {
-    #val + 1/4 * (x - 0.5)^2 
+    b1 <- val + 1/4 * (x - 0.5)^2 
 
-    val + 1/2 *  (x - 0.5)^2 
+    #b1 <- val + 1 / 3 *  (x - 0.5)^2 
   # Beta larger for low quantiles
   } else if (type == "low") {
-    #val + 1 / 10 * exp(x * -7)
+    b1 <- val + 1 / 10 * exp(x * -7)
 
-    val + 1 / 5 * exp(x * -7)
+    #b1 <- val + 1 / 5 * exp(x * -7)
   # Beta larger for high quantiles
   } else if (type == "high") {
-    #val + 1 / 10000 * exp(x * 7) 	
+    b1 <- val + 1 / 10000 * exp(x * 7) 	
 
-    val + 1 / 5000 * exp(x * 7) 	
+    #b1 <- val + 1 / 5000 * exp(x * 7) 	
   # Beta not specified  
   } else {
     stop("Beta type not recognized")
   }
+
+  #rescale for appropriately sized beta
+  b1 <- b1 / 10
 }}
 
 
@@ -142,6 +145,7 @@ gety <- function(argvals1, betaM, betaf, x1, disttype, sd1 = 0.01) {
 
     # find linear function of x and beta	
     linf <- rowSums(sweep(t(xvar1), 2, beta1, "*"))
+    linf <- linf * 1 / length(beta1)
     #linf <- apply(linf, 2, function(x) auc(argvals1, x))
 
   # If other is truth
@@ -153,6 +157,7 @@ gety <- function(argvals1, betaM, betaf, x1, disttype, sd1 = 0.01) {
       xhold <- t(xhold)
       
       linf <- rowSums(sweep(xhold, 2, betaf, "*"))
+      linf <- linf * 1 / length(beta1)
     }else{
       linf <- betaf * xhold
     } 
