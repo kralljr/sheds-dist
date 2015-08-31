@@ -129,7 +129,9 @@ getbeta <- function(type, val = 0) { function(x) {
   }
 
   #rescale for appropriately sized beta
-  b1 <- b1 / 10
+  #b1 <- b1 / 10
+  b1
+
 }}
 
 
