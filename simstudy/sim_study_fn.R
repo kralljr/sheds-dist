@@ -411,7 +411,7 @@ runsim <- function(x1use, xs1, ts1, cn, lb1 = -.5, ub1 = 0.5,
     betas <- gb1(argvals1)
 
     # format beta data
-    t1[i] <- paste(ti1, ":", xi1)
+    t1[i] <- paste(xi1, ":", ti1)
     type1 <- rep(t1[i], length(betas))
     data1 <- data.frame(argvals1, betas, type1)
     colnames(data1) <- c("quant", "beta", "Type1")
