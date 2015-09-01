@@ -202,20 +202,29 @@ To compare our results with more traditional approaches, we fit the quantiles us
 
 ## Results
 
-```{r beta, eval = T, fig.height = 10, fig.width = 15}
-ag1 <- c(0.1, 0.25, 0.5, 0.75, 0.9)
+
+
+
+
+
+
+
+
+```{r getx, eval = T, fig.height = 10, fig.width = 15}
+
+
 ny <- 1000
-tx <- c("shift", "longr", "longl", "wide", "wtrue", "strue")
-nx <- c("Shift", "Long right", "Long left", "Wide", "True PM")
+ag1 <- c(0.1, 0.25, 0.5, 0.75, 0.9)
+#ag1 <- argvals2
+  
+# for each reasonable comb
+ts1 <- c("constant", "high", "low", "high", "low", "x2", "high", "low", "x2")
+xs1 <- c("shift", "longr", "longl", "wide", "wide", "wide", "true", "true", "true")
+xs1 <- data.frame(xs1, c(1, 2, 3, 4, 4, 4, 5, 5, 5))
 
-tb <- c("constant", "x2", "low", "high")
 
 
-qb1 <- 0.05
-names(qb1) <- 50
-qb2 <- c(0.1, 0.05, 0.05)
-names(qb2) <- c(50, 75, 90)
-qbs <- list(qb1, qb2)
+tx <- unique(xs1[, 1])
 
 x1use <- list()
 # For each x
@@ -230,107 +239,51 @@ for(xi in 1 : 5) {
 
 
 
-ag1 <- argvals2
-  
-# for each reasonable comb
-tb2b <- c("constant", "high", "low", "high", "low", "x2", "high", "low", "x2")
-xi2a <- c("shift", "longr", "longl", "wide", "wide", "wide", "true", "true", "true")
-xi2b <- c(1, 2, 3, 4, 4, 4, 5, 5, 5)
+```
+
+
+
+# Small betas
+```{r beta1, eval = T, fig.height = 10, fig.width = 15}
+
+std1 <- T
+scaleb <- 1/2
+shift1 <- 0.01
 
 
 # Get true betas
-for(i in 1 : length(tb2b)) {
-	gb1 <- getbeta(tb2b[i])
-	betas <- gb1(argvals2)
-
-        tb2 <- tb2b[i]
-        type1 <- rep(paste(tb2, ":", xi2a[i]), length(betas))
-        data1 <- data.frame(argvals2, betas, type1)
-        colnames(data1) <- c("quant", "beta", "Type1")	
-	
-	if(i == 1) {
-	   datb <- data1
-	}else{
-           datb <- full_join(datb, data1)
-	}
-}
-
-
 cn <- c("X", "Est", "SE", "Zval", "Pval", "Type1", "Reg")
-for(sall in 1 : length(xi2b)) {
-  tb2 <- tb2b[sall]
-  tb3 <- tb2
-  xi2 <- xi2b[sall]
 
 
-  #inflate xs
-  xuse1 <- x1use[[xi2]]
-  # nanograms
-  #xuse1$xall <- xuse1$xall * 1000
+runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1) 
 
-
-  sim1 <- simout(xuse1, argvals2, betaM = 0, argvalslr = ag1, typeb = tb2, 
-    sd1 = sd2, disttype = disttype1, val1 = 0, quants = F, std = T)
-
-
-   x <- as.numeric(rownames(sim1$beta2))
-   type1 <- rep(paste(tb2, ":", xi2a[sall]), length(x))
-   type2 <- rep("Univariate", length(x))
-   x1 <- data.frame(x, sim1$beta2, type1, type2)
-   colnames(x1) <- cn
-
-   if(sall == 1) {
-     xfull <- x1
-   }else{
-     xfull <- full_join(x1, xfull)
-   }
-
-   x <- as.numeric(rownames(sim1$beta3))
-   type2 <- rep("Multivariate", length(x))
-   x2 <- data.frame(x, sim1$beta3, type1, type2)
-   colnames(x2) <- cn
-
-   xfull <- full_join(x2, xfull)
-}
-
-
-# get upper and lower CI
-xfull$LB <- xfull$Est - 1.96 * xfull$SE
-xfull$UB <- xfull$Est + 1.96 * xfull$SE
-
-lb1 <- -0.5
-ub1 <- 0.5
-
-xfull$LB2 <- xfull$LB
-xfull$LB2[xfull$LB2 < lb1] <- -Inf 
-
-xfull$UB2 <- xfull$UB
-xfull$UB2[xfull$UB2 > ub1] <- Inf 
-
-
-# Fix order
-xfull$Reg <- factor(xfull$Reg, levels = c("Univariate", "Multivariate"))
-
-
-#Plot all
-pd <- position_dodge(0.05)
-cols <- brewer.pal(3,  "Dark2")[1 : 2]
-
-
-
-ggplot() +xlab("Quantile") + ylab("Beta estimate") +
-       geom_line(data = datb, aes(x = quant, y = beta)) + 
-      geom_hline(y = 0, linetype = 2, color = "grey") +
-      geom_pointrange(data = xfull, aes(x = X, y = Est,color = Reg, 
-	ymin = LB2, ymax = UB2), position = pd, width = 0) +
-       theme_bw() +
-      scale_y_continuous(limits = c(lb1, ub1)) + 
-      scale_color_manual(name = "", values = cols) +
-      facet_wrap(~ Type1)
-
-
+                   
+gfun(runsim1)
 
 ```
+
+
+
+
+
+
+
+# Larger betas
+```{r beta2, eval = T, fig.height = 10, fig.width = 15}
+#scaleb <- 10
+scaleb <- 1
+
+
+runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1) 
+
+                   
+gfun(runsim1)
+
+```
+
+
+
+
 
 
 
@@ -348,21 +301,25 @@ bf <- getbeta("high")
 ag1 <- c(0.1, 0.25, 0.5, 0.75, 0.9)
 ag1 <- argvals2
 
-betas1 <- bf(ag1) 
+betas1 <- bf(ag1)  
 
-xuse1 <- x1use[[4]]$xall * 10 
+xuse1 <- x1use[[4]]$xall  
 xuse <- t(apply(xuse1,  2, quantile, probs = ag1))
+
+
+linfun <-  rowSums(sweep(xuse, 2, betas1, "*"))
+set.seed(10)
+y <- rpois(ny, exp(linfun))
+
 
 #stdize
 mn1 <- apply(xuse, 2, mean)
 sd1 <- apply(xuse, 2, sd)
-#xuse <- sweep(xuse, 2, mn1, "-")
-#xuse <- sweep(xuse, 2, sd1, "/")
+xuse <- sweep(xuse, 2, mn1, "-")
+xuse <- sweep(xuse, 2, sd1, "/")
 
 
-linfun <- 1 / length(ag1) * rowSums(sweep(xuse, 2, betas1, "*"))
-set.seed(10)
-y <- rpois(ny, exp(linfun))
+
 
 #check reality
 meds <- apply(xuse1, 2, median)
