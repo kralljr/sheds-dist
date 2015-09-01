@@ -20,6 +20,8 @@ library(truncnorm)
 library(gridExtra)
 library(MESS)
 library(refund)
+library(glmnet)
+
 
 fp1 <- "~/Documents/SHEDS"
 fp2 <- "~/Dropbox/SHEDS/data"
@@ -243,48 +245,88 @@ for(xi in 1 : 5) {
 
 
 
-# Small betas
+
+```{r setall}
+cn <- c("X", "Est", "SE", "Zval", "Pval", "Type1", "Reg")
+std1 <- T
+```
+
+
+
+
+### No shift
+
+
+
+
+#### Small betas
 ```{r beta1, eval = T, fig.height = 10, fig.width = 15}
 
-std1 <- T
+
+scaleb <- 1/2
+shift1 <- 0
+
+runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1)                    
+gfun(runsim1)
+
+
+tab1 <- data.frame(levels(runsim1$xfull$Type1), round(runsim1$med, 3))
+colnames(tab1) <- c("Type", "Beta_median")
+kable(tab1)
+```
+
+
+#### Larger betas
+```{r beta2, eval = T, fig.height = 10, fig.width = 15}
+scaleb <- 1
+
+runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1)                    
+gfun(runsim1)
+
+
+tab1 <- data.frame(levels(runsim1$xfull$Type1), round(runsim1$med, 3))
+colnames(tab1) <- c("Type", "Beta_median")
+kable(tab1)
+```
+
+
+
+
+
+### Shift
+
+#### Small betas
+```{r beta3, eval = T, fig.height = 10, fig.width = 15}
+
+
 scaleb <- 1/2
 shift1 <- 0.01
 
-
-# Get true betas
-cn <- c("X", "Est", "SE", "Zval", "Pval", "Type1", "Reg")
-
-
-runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1) 
-
-                   
+runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1)                    
 gfun(runsim1)
 
+
+
+
+tab1 <- data.frame(levels(runsim1$xfull$Type1), round(runsim1$med, 3))
+colnames(tab1) <- c("Type", "Beta_median")
+kable(tab1)
 ```
 
 
-
-
-
-
-
-# Larger betas
-```{r beta2, eval = T, fig.height = 10, fig.width = 15}
-#scaleb <- 10
+#### Larger betas
+```{r beta4, eval = T, fig.height = 10, fig.width = 15}
 scaleb <- 1
 
-
-runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1) 
-
-                   
+runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1)                    
 gfun(runsim1)
 
+
+tab1 <- data.frame(levels(runsim1$xfull$Type1), round(runsim1$med, 3))
+colnames(tab1) <- c("Type", "Beta_median")
+kable(tab1)
+
 ```
-
-
-
-
-
 
 
 
