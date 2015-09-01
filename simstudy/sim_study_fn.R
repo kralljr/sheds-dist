@@ -104,7 +104,7 @@ getxfn <- function(xvar1, argvals1, ns1 = 15) {
 
 
 # beta function of x
-getbeta <- function(type, val = 0) { function(x) {
+getbeta <- function(type, val = 0, scale = 1) { function(x) {
   # Beta constant over quantiles
   if(type == "constant") {
     b1 <- rep(val, length = length(x))
@@ -130,7 +130,7 @@ getbeta <- function(type, val = 0) { function(x) {
   }
 
   #rescale for appropriately sized beta
-  #b1 <- b1 / 10
+  b1 <- b1 * scale
   b1
 
 }}
@@ -192,10 +192,10 @@ gety <- function(argvals1, betaM, betaf, x1, disttype, sd1 = 0.01) {
 
 
 
-simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, argvalslr = argvals1, val1 = 1, std = F, quants = F,...) {
+simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, argvalslr = argvals1, val1 = 1, std = F, quants = F, scale1 = 1,...) {
   # Get function of beta
   if(class(typeb) != "numeric") {
-    betaf <- getbeta(typeb, val = val1)
+    betaf <- getbeta(typeb, val = val1, scale = scale1)
   } else {
     betaf <- typeb
   }
