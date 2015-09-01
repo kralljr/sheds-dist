@@ -180,10 +180,14 @@ plotallx <- function(x, argvals2) {
 
 formfull <- function(xfull, lb1 = -0.5, ub1 = 0.5) {
 
-
+  scale1 <- 1
   # get upper and lower CI
   xfull$LB <- xfull$Est - 1.96 * xfull$SE
   xfull$UB <- xfull$Est + 1.96 * xfull$SE
+
+  xfull$LB <- xfull$LB * scale1
+  xfull$UB <- xfull$UB * scale1
+  xfull$Est <- xfull$Est * scale1
 
   xfull$LB2 <- xfull$LB
   xfull$LB2[xfull$LB2 < lb1] <- -Inf 
@@ -193,17 +197,18 @@ formfull <- function(xfull, lb1 = -0.5, ub1 = 0.5) {
 
 
   # Fix order
-  xfull$Reg <- factor(xfull$Reg, levels = c("Univariate", "Multivariate"))
+  xfull$Reg <- factor(xfull$Reg, levels = c("Univariate", "Multivariate", "Penalized"))
   xfull
 }
 
 
 
-gfun <- function(datb, xfull) {
-
+gfun <- function(runsimout, lb1 = -.5, ub1 = 0.5) {
+  datb <- runsimout$datb
+  xfull <- runsimout$xfull
   #Plot all
   pd <- position_dodge(0.05)
-  cols <- brewer.pal(3,  "Dark2")[1 : 2]
+  cols <- brewer.pal(3,  "Dark2")
 
   g1 <- ggplot() +xlab("Quantile") + ylab("Beta estimate") +
     geom_line(data = datb, aes(x = quant, y = beta)) + 
