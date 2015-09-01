@@ -78,13 +78,14 @@ getx <- function(ny, na, argvals1, typex = "shift", mean1 = 15, sd1 = 1.5, rate1
   x1 <- apply(xall, 2, quantile, probs = argvals1)
   x1 <- abs(x1)
 
-  # Get functional x
+  # Get functional x for plot
   xfn1 <- getxfn(x1, argvals1, ns1)
   xfn <- xfn1$xfn
   basis1 <- xfn1$basis1
 
   # Get outcome 
-  return(list(x1 = x1, xall = xall, xfn = xfn, basis1 = basis1, xM = xM))
+  return(list(x1 = x1, xall = xall, xM = xM))
+  #return(list(x1 = x1, xall = xall, xfn = xfn, basis1 = basis1, xM = xM))
 
 }
 
@@ -200,9 +201,10 @@ simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, ar
   }
   # Generate y
   y1 <- gety(argvals1, betaM, betaf, x1, disttype, sd1)
+  
   # Get functional x
-  xfn <- x1$xfn
-  ns1 <- x1$basis1$nbasis
+  #xfn <- x1$xfn
+  #ns1 <- x1$basis1$nbasis
 
   # Traditional univariate and multivariate regression
   # Set up data frame
@@ -234,7 +236,7 @@ simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, ar
     
   # Depending on type of regression
   if(disttype == "norm") {  
-    fmod1 <- flm(x1, y1)
+    #fmod1 <- flm(x1, y1)
 
     beta3 <- summary(lm(eval(eqn1), data = dat1))$coef[-1, ] 
 
@@ -248,7 +250,7 @@ simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, ar
 
   } else if (disttype == "pois") {
     #fmod1 <- fglm1(x1, y1, argvals1, ns1)
-    fmod1 <- NULL
+    #fmod1 <- NULL
     beta3 <- summary(glm(eval(eqn1), data = dat1, family = "poisson"))$coef[-1, ] 
   
   
@@ -270,7 +272,8 @@ simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, ar
   #freg1 <- fRegress(y1 ~ x1$xfn)
 
   # Save output
-  list(y1 = y1, betaf = betaf, fmod1 = fmod1, beta2 = beta2, beta3 = beta3, basis1 = x1$basis1)
+  list(y1 = y1, betaf = betaf, beta2 = beta2, beta3 = beta3)
+  #list(y1 = y1, betaf = betaf, fmod1 = fmod1, beta2 = beta2, beta3 = beta3, basis1 = x1$basis1)
 }
 
 

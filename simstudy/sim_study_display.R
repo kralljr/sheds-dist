@@ -110,7 +110,7 @@ plotbeta1 <- function(sim1, argvals1, cols = NULL, disttype = "norm", main1 = NU
       xlab = "Quantile", ylab = "Beta", 
       main = "Beta function", col = cols[1])
   } else if(disttype == "pois") {
-    basis1 <- sim1$basis1
+    #basis1 <- sim1$basis1
     #lmf <- sim1$fmod1
     #coef1 <- summary(lmf)$coef[-c(1,2), ]
     #fd1 <- fd(coef1[, 1], basis1)
