@@ -175,3 +175,45 @@ plotallx <- function(x, argvals2) {
   plotxfn(x, argvals2)
 }
 
+
+
+
+formfull <- function(xfull, lb1 = -0.5, ub1 = 0.5) {
+
+
+  # get upper and lower CI
+  xfull$LB <- xfull$Est - 1.96 * xfull$SE
+  xfull$UB <- xfull$Est + 1.96 * xfull$SE
+
+  xfull$LB2 <- xfull$LB
+  xfull$LB2[xfull$LB2 < lb1] <- -Inf 
+
+  xfull$UB2 <- xfull$UB
+  xfull$UB2[xfull$UB2 > ub1] <- Inf 
+
+
+  # Fix order
+  xfull$Reg <- factor(xfull$Reg, levels = c("Univariate", "Multivariate"))
+  xfull
+}
+
+
+
+gfun <- function(datb, xfull) {
+
+  #Plot all
+  pd <- position_dodge(0.05)
+  cols <- brewer.pal(3,  "Dark2")[1 : 2]
+
+  g1 <- ggplot() +xlab("Quantile") + ylab("Beta estimate") +
+    geom_line(data = datb, aes(x = quant, y = beta)) + 
+    geom_hline(y = 0, linetype = 2, color = "grey") +
+    geom_pointrange(data = xfull, aes(x = X, y = Est,color = Reg, 
+    ymin = LB2, ymax = UB2), position = pd, width = 0) +
+    theme_bw() +
+    scale_y_continuous(limits = c(lb1, ub1)) + 
+    scale_color_manual(name = "", values = cols) +
+    facet_wrap(~ Type1)
+  g1
+}
+
