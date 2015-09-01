@@ -84,8 +84,8 @@ getx <- function(ny, na, argvals1, typex = "shift", mean1 = 15, sd1 = 1.5, rate1
   basis1 <- xfn1$basis1
 
   # Get outcome 
-  return(list(x1 = x1, xall = xall, xM = xM))
-  #return(list(x1 = x1, xall = xall, xfn = xfn, basis1 = basis1, xM = xM))
+  #return(list(x1 = x1, xall = xall, xM = xM))
+  return(list(x1 = x1, xall = xall, xfn = xfn, basis1 = basis1, xM = xM))
 
 }
 
@@ -116,7 +116,7 @@ getbeta <- function(type, val = 0, scale = 1) { function(x) {
     #b1 <- val + 1 / 3 *  (x - 0.5)^2 
   # Beta larger for low quantiles
   } else if (type == "low") {
-    b1 <- val + 1 / 10 * exp(x * -7)
+   b1 <- val + 1 / 10 * exp(x * -7)
 
     #b1 <- val + 1 / 5 * exp(x * -7)
   # Beta larger for high quantiles
@@ -148,7 +148,7 @@ gety <- function(argvals1, betaM, betaf, x1, disttype, sd1 = 0.01) {
 
     # find linear function of x and beta	
     linf <- rowSums(sweep(t(xvar1), 2, beta1, "*"))
-    linf <- linf * 1 / length(beta1)
+    #linf <- linf * 1 / length(beta1)
     #linf <- apply(linf, 2, function(x) auc(argvals1, x))
 
   # If other is truth
@@ -160,7 +160,7 @@ gety <- function(argvals1, betaM, betaf, x1, disttype, sd1 = 0.01) {
       xhold <- t(xhold)
       
       linf <- rowSums(sweep(xhold, 2, betaf, "*"))
-      linf <- linf * 1 / length(beta1)
+      #linf <- linf * 1 / length(beta1)
     }else{
       linf <- betaf * xhold
     } 
@@ -223,8 +223,10 @@ simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, ar
    sd1 <- apply(xmat, 2, sd)
    xmat <- sweep(xmat, 2, mn1, "-")
    xmat <- sweep(xmat, 2, sd1, "/")  
+
   }
 
+  #xmat <- xmat / length(argvals1)
 
   dat1 <- data.frame(y1, xmat)
 
@@ -262,20 +264,64 @@ simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, ar
     }
   
   }
-
+  betaN <- newbeta(x1 = x1, y = y1, argvals2 = argvals1, std = std)
 
   rownames(beta2) <- argvalslr
   rownames(beta3) <- argvalslr 
 
-
+  
 
   #freg1 <- fRegress(y1 ~ x1$xfn)
 
   # Save output
-  list(y1 = y1, betaf = betaf, beta2 = beta2, beta3 = beta3)
+  list(y1 = y1, betaf = betaf, beta2 = beta2, beta3 = beta3, betaN = betaN)
   #list(y1 = y1, betaf = betaf, fmod1 = fmod1, beta2 = beta2, beta3 = beta3, basis1 = x1$basis1)
 }
 
+
+
+
+newbeta <- function(x1, y1, argvals2, std = F) {
+   
+  xmat <- apply(x1$xall, 2, quantile, probs = argvals2 )
+  xmat <- t(xmat)
+
+  med <- apply(x1$xall, 2, median)
+
+  lm1 <- function(x) {
+     lm(x ~ med)$resid
+  }
+
+  # get residuals
+  xmat <- apply(xmat, 2, lm1)
+
+  # Standardize?
+  if(std) {
+   mn1 <- apply(xmat, 2, mean)
+   sd1 <- apply(xmat, 2, sd)
+   xmat <- sweep(xmat, 2, mn1, "-")
+   xmat <- sweep(xmat, 2, sd1, "/")  
+
+  }
+
+  #xmat <- xmat / length(argvals1)
+ 
+  dat1 <- data.frame(y1, med, xmat)
+
+  # do multivariate regression
+  colnames(dat1) <- c("y", "median1", paste0("x", seq(1, ncol(xmat))))
+  #eqn1 <- paste0("~", paste(colnames(dat1)[-c(1, 2)], collapse = "+"))
+
+  #p1 <- penalized(y, penalized = xmat, unpenalized = med, data = dat1, lambda1 = 10)
+
+  xs <- as.matrix(data.frame(med, xmat))
+  # lasso alpha = 1
+  p1 <- cv.glmnet(xs, y1, family = "poisson", alpha = 1, standardize = F)
+  coefp <- coef(p1, s = "lambda.min")
+  med <- coefp[2, ]
+  coefp <- data.frame(coefp[-c(1, 2),],NA, NA, NA) 
+  list(coefp, med)
+}
 
 
 flm <- function(x1, y1) {
@@ -342,3 +388,92 @@ fglm <- function(x1, y1, argvals1, ns1) {
   pfr1 <- pfr(y1, funcs = t(x1$x1), kz = ns1, nbasis = ns1, kb = ns1, family = "quasipoisson" )
   pfr1
 }
+
+
+
+
+
+runsim <- function(x1use, xs1, ts1, cn, lb1 = -.5, ub1 = 0.5,
+                   argvals1 = argvals2, argvalslr = ag1, scaleb = 1, betaM1 = 0,
+                   val1 = 0, disttype1 = "pois", std1 = T, sd2 = 0.01) {
+
+  #specify output
+  med <- 0
+  t1 <- vector()
+  for(i in 1 : length(ts1)) {
+    # specify beta and x
+    ti1 <- ts1[i]
+    xi1 <- xs1[i, 1]
+    xi2 <- xs1[i, 2]
+
+    # get betas 
+    gb1 <- getbeta(ti1, scale = scaleb)
+    betas <- gb1(argvals1)
+
+    # format beta data
+    t1[i] <- paste(ti1, ":", xi1)
+    type1 <- rep(t1[i], length(betas))
+    data1 <- data.frame(argvals1, betas, type1)
+    colnames(data1) <- c("quant", "beta", "Type1")
+
+    if(i == 1) {
+      datb <- data1
+    }else{
+      datb <- full_join(datb, data1)
+    }
+
+
+    #inflate xs
+    xuse1 <- x1use[[xi2]]
+    # nanograms
+    #xuse1$xall <- xuse1$xall * 1000
+
+
+    sim1 <- simout(xuse1, argvals1, betaM = betaM1,
+                   argvalslr = argvalslr,
+                   typeb = tb2, sd1 = sd2, disttype = disttype1, val1 = val1,
+                   quants = F, std = std1, scale1 = scaleb)
+
+
+    x <- as.numeric(rownames(sim1$beta2))
+    type1 <- rep(t1[i], length(x))
+    type2 <- rep("Univariate", length(x))
+    x1 <- data.frame(x, sim1$beta2, type1, type2)
+    colnames(x1) <- cn
+
+    if(i == 1) {
+      xfull <- x1
+      class(xfull$Reg) <- "character"
+    }else{
+      xfull <- full_join(x1, xfull)
+    }
+    x <- as.numeric(rownames(sim1$beta3))
+    type2 <- rep("Multivariate", length(x))
+    x2 <- data.frame(x, sim1$beta3, type1, type2)
+    colnames(x2) <- cn
+    
+    xfull <- full_join(x2, xfull)
+
+
+    # Add in new betas
+    x <- argvals1
+    type2 <- rep("Penalized", length(x))
+    x2 <- data.frame(x, sim1$betaN[[1]], type1, type2)
+    colnames(x2) <- cn
+
+
+    xfull <- full_join(x2, xfull)
+    
+    med <- c(med, sim1$betaN[[2]])
+  }
+
+  xfull$Type1 <- factor(xfull$Type1, levels = t1)
+  datb$Type1 <- factor(datb$Type1, levels = t1)
+
+  med <- med[-1]
+  xfull <- formfull(xfull, lb1, ub1)
+  list(xfull = xfull, datb = datb, med = med)
+
+}
+
+
