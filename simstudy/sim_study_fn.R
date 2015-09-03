@@ -148,8 +148,8 @@ gety <- function(argvals1, betaM, betaf, x1, disttype, sd1 = 0.01) {
 
     # find linear function of x and beta	
     linf <- rowSums(sweep(t(xvar1), 2, beta1, "*"))
-    #linf <- linf * 1 / length(beta1)
-    linf <- apply(linf, 2, function(x) auc(argvals1, x))
+    linf <- linf * 1 / length(beta1)
+    #linf <- apply(linf, 2, function(x) auc(argvals1, x))
 
   # If other is truth
   } else{
@@ -160,7 +160,7 @@ gety <- function(argvals1, betaM, betaf, x1, disttype, sd1 = 0.01) {
       xhold <- t(xhold)
       
       linf <- rowSums(sweep(xhold, 2, betaf, "*"))
-      #linf <- linf * 1 / length(beta1)
+      linf <- linf * 1 / length(beta1)
     }else{
       linf <- betaf * xhold
     } 
@@ -274,7 +274,7 @@ simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, ar
   #freg1 <- fRegress(y1 ~ x1$xfn)
 
   # Save output
-  list(y1 = y1, betaf = betaf, beta2 = beta2, beta3 = beta3, betaN = betaN)
+  list(y1 = y1, betaf = betaf, beta2 = beta2, beta3 = beta3, betaN = betaN, x1 = x1, argvals1 = argvals1)
   #list(y1 = y1, betaf = betaf, fmod1 = fmod1, beta2 = beta2, beta3 = beta3, basis1 = x1$basis1)
 }
 
@@ -400,6 +400,7 @@ runsim <- function(x1use, xs1, ts1, cn, lb1 = -.5, ub1 = 0.5,
   #specify output
   med <- 0
   t1 <- vector()
+  simout1 <- list()
   for(i in 1 : length(ts1)) {
     # specify beta and x
     ti1 <- ts1[i]
@@ -429,12 +430,12 @@ runsim <- function(x1use, xs1, ts1, cn, lb1 = -.5, ub1 = 0.5,
     #xuse1$xall <- xuse1$xall * 1000
 
 
-    sim1 <- simout(xuse1, argvals1, betaM = betaM1,
+    simout1[[i]] <- simout(xuse1, argvals1, betaM = betaM1,
                    argvalslr = argvalslr,
-                   typeb = tb2, sd1 = sd2, disttype = disttype1, val1 = val1,
+                   typeb = ti1, sd1 = sd2, disttype = disttype1, val1 = val1,
                    quants = F, std = std1, scale1 = scaleb)
 
-
+    sim1 <- simout1[[i]]
     x <- as.numeric(rownames(sim1$beta2))
     type1 <- rep(t1[i], length(x))
     type2 <- rep("Univariate", length(x))
@@ -472,7 +473,7 @@ runsim <- function(x1use, xs1, ts1, cn, lb1 = -.5, ub1 = 0.5,
 
   med <- med[-1]
   xfull <- formfull(xfull, lb1, ub1)
-  list(xfull = xfull, datb = datb, med = med)
+  list(xfull = xfull, datb = datb, med = med, simout1 = simout1)
 
 }
 
