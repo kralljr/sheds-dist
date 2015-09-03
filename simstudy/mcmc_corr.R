@@ -16,9 +16,11 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
 
   # Get guessvec
   if(is.null(guessvec)) {
-    guessvec$beta0 <- 0
-    guessvec$beta1 <- rep(0.15, ncol(x))
-    guessvec$phi <- 8
+    guessvec$beta0 <- 1
+    b1 <- t(matrix(rep(1, ncol(x))))
+    guessvec$beta1 <- b1
+
+    guessvec$phi <- 0.2
     guessvec$sigma2 <- 0.01 
   }
   
@@ -44,8 +46,9 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     beta1.tune <- 0.8
     phi.tune <- 1.5
     
-    beta0.tune <- 0.01
-    beta1.tune <- 0.5
+    beta0.tune <- 0.001
+    beta1.tune <- 0.01
+    phi.tune <- 0.1
       
     # From howard 
     #phi.tune <- 0.5
