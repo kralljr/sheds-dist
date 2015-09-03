@@ -149,7 +149,7 @@ gety <- function(argvals1, betaM, betaf, x1, disttype, sd1 = 0.01) {
     # find linear function of x and beta	
     linf <- rowSums(sweep(t(xvar1), 2, beta1, "*"))
     #linf <- linf * 1 / length(beta1)
-    #linf <- apply(linf, 2, function(x) auc(argvals1, x))
+    linf <- apply(linf, 2, function(x) auc(argvals1, x))
 
   # If other is truth
   } else{
