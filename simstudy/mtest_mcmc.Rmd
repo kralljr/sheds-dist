@@ -190,11 +190,13 @@ source("mcmc_corr.R")
 
 load("sbeta_noshift.RData")
 rs1 <- runsim1$simout1[[2]]
+quants1 <- rs1$argvals1
+beta1a <- rs1$betaf(quants1)
 
 
 set.seed(10)
 N <- 25000
-m1 <- mcmcout(rs1$y1, t(rs1$x1$x1), quants = rs1$argvals1, niter = N, burnin = 0, thin = 1)
+m1 <- mcmcout(rs1$y1, t(rs1$x1$x1), quants = quants1, niter = N, burnin = 0, thin = 1)
 save(m1, file = "test_sim2.RData")
 
 
@@ -221,7 +223,7 @@ n <- 7500
 #N <- length(m1$sigma2)
 ns <- seq(n, N, by = 10)
 m1ba <- apply(m1$beta1[ns, ], 2, mean)
-m1b <- data.frame(round(quants1, 2),  round(m1ba, 2), as.numeric(round(beta1a, 2)))
+m1b <- data.frame(round(quants1, 2),  round(m1ba, 3), as.numeric(round(beta1a, 2)))
 colnames(m1b) <- c("Quantile", "Posterior mean", "Truth")
 kable(m1b)
 ```

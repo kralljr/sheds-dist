@@ -78,11 +78,15 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     b.sig <- 10
 
     # Howard: distance units 1/10??
-    a.phi <- 0.03
-    b.phi <- 0.005
+    #a.phi <- 0.03
+    #b.phi <- 0.005
     # Worked for me
-    #a.phi <- 9
-    #b.phi <- 10
+    a.phi <- 9
+    b.phi <- 10
+  
+    # Try lower cor
+    a.phi <- 3
+    b.phi <- 10
   }
   
 
