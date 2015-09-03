@@ -37,6 +37,7 @@ figw1 <- 8
 ```{r external}
 source("sim_study_fn.R")
 source("sim_study_display.R")
+source("mcmc_corr.R")
 ```
 
 Jenna Krall
@@ -269,6 +270,7 @@ shift1 <- 0
 runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1)                    
 gfun(runsim1)
 
+save(runsim1, file = "sbeta_noshift.RData")
 
 tab1 <- data.frame(levels(runsim1$xfull$Type1), round(runsim1$med, 3))
 colnames(tab1) <- c("Type", "Beta_median")
@@ -283,6 +285,8 @@ scaleb <- 1
 runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1)                    
 gfun(runsim1)
 
+
+save(runsim1, file = "lbeta_noshift.RData")
 
 tab1 <- data.frame(levels(runsim1$xfull$Type1), round(runsim1$med, 3))
 colnames(tab1) <- c("Type", "Beta_median")
@@ -306,6 +310,7 @@ runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1)
 gfun(runsim1)
 
 
+save(runsim1, file = "sbeta_shift.RData")
 
 
 tab1 <- data.frame(levels(runsim1$xfull$Type1), round(runsim1$med, 3))
@@ -321,6 +326,8 @@ scaleb <- 1
 runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1)                    
 gfun(runsim1)
 
+
+save(runsim1, file = "lbeta_shift.RData")
 
 tab1 <- data.frame(levels(runsim1$xfull$Type1), round(runsim1$med, 3))
 colnames(tab1) <- c("Type", "Beta_median")
