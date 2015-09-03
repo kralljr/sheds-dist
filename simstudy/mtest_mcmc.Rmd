@@ -182,6 +182,28 @@ save(m1, file = "test_mcmc_howard.RData")
 ```
 
 
+```{r}
+
+source("mcmc_corr.R")
+
+# try simulated data
+
+load("sbeta_noshift.RData")
+rs1 <- runsim1$simout1[[2]]
+
+
+set.seed(10)
+N <- 25000
+m1 <- mcmcout(rs1$y1, t(rs1$x1$x1), quants = rs1$argvals1, niter = N, burnin = 0, thin = 1)
+save(m1, file = "test_sim2.RData")
+
+
+```
+
+
+
+
+
 # Summary statistics for data
 
 ## Acceptance probabilities
