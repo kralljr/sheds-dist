@@ -12,7 +12,7 @@
 #' @param burnin length of burnin period
 #' @param thin Amount to thin out
 mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
-  niter = 100, burnin = 0, thin = 1) {
+  niter = 100, burnin = 0, thin = 1, type = "pois") {
 
   # Get guessvec
   if(is.null(guessvec)) {
@@ -27,6 +27,10 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
   # Add in data
   guessvec$y <- y
   guessvec$x <- x
+
+  # Add in dist
+  guessvec$type <- type
+
 
   # Get distance matrix
   np <- ncol(x)
@@ -373,7 +377,7 @@ llhood.beta1.out <- function(guessvec, quants) {
 
   # Get normal likelihood of beta1
   lbeta1 <- llhood.beta1(guessvec)
-  # Get poisson likelihood for y | beta1
+  # Get likelihood for y | beta1
   ly <- llhood.y(guessvec, quants)
 
   # Get log likelihood
@@ -382,7 +386,7 @@ llhood.beta1.out <- function(guessvec, quants) {
 }
 
 
-#' Function to get poisson likelihood of y
+#' Function to get likelihood of y
 #'
 #' @param guessvec list of items in MCMC
 llhood.y <- function(guessvec, quants) {
@@ -392,15 +396,24 @@ llhood.y <- function(guessvec, quants) {
   beta1 <- guessvec$beta1
   x <- guessvec$x
 
-  # Get mean of poisson distribution
+  # normal or poisson?
+  type <- guessvec$type
+
+  # Get mean of  distribution
   beta1b <- sweep(x, 2, beta1, "*")
   beta1b <-  rowSums(beta1b) * 1/length(beta1)
   #beta1b <- apply(beta1b, 1, function(x) auc(quants, x))
-  mu <- exp(beta0 + beta1b)
-  n <- length(y)
+  
+  if(type == "norm") {
+    mu <- beta0 + beta1b
+    llhood <- sum(dnorm(y, mu, sd = 0.01, log = T))
+  }else if(type == "pois") {
+    mu <- exp(beta0 + beta1b)
 
-  # Get log likelihood
-  llhood <- sum(dpois(y, mu, log = T)) 
+    # Get log likelihood
+    llhood <- sum(dpois(y, mu, log = T)) 
+  
+  }  
   return(llhood)
 }
 
