@@ -203,12 +203,16 @@ formfull <- function(xfull, lb1 = -0.5, ub1 = 0.5) {
 
 
 
-gfun <- function(runsimout, lb1 = -.5, ub1 = 0.5) {
+gfun <- function(runsimout, lb1 = -.5, ub1 = 0.5, betan = F) {
   datb <- runsimout$datb
   xfull <- runsimout$xfull
   #Plot all
   pd <- position_dodge(0.05)
   cols <- brewer.pal(3,  "Dark2")
+
+  if(!betan) {
+    xfull <- xfull[-which(xfull$Reg == "Penalized"),]
+  }
 
   g1 <- ggplot() +xlab("Quantile") + ylab("Beta estimate") +
     geom_line(data = datb, aes(x = quant, y = beta)) + 
