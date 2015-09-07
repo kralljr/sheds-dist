@@ -188,8 +188,8 @@ source("mcmc_corr.R")
 
 # try simulated data
 
-load("sbeta_noshift.RData")
-rs1 <- runsim1$simout1[[2]]
+load("lbeta_shift.RData")
+rs1 <- runsim1$simout1[[7]]
 quants1 <- rs1$argvals1
 beta1a <- rs1$betaf(quants1)
 
@@ -197,7 +197,7 @@ beta1a <- rs1$betaf(quants1)
 set.seed(10)
 N <- 25000
 m1 <- mcmcout(rs1$y1, t(rs1$x1$x1), quants = quants1, niter = N, burnin = 0, thin = 1, type = "norm")
-save(m1, file = "test_sim2_norm.RData")
+save(m1, file = "norm_high_lbeta_shift.RData")
 
 
 ```
@@ -210,7 +210,7 @@ save(m1, file = "test_sim2_norm.RData")
 
 ## Acceptance probabilities
 ```{r tabs}
-load("test_mcmc_howard.RData")
+#load("test_mcmc_howard.RData")
 acc1 <- cbind(names(m1$accept), round(m1$accept / N, 2))
 colnames(acc1) <- c("Parameter", "Acceptance Probability")
 rownames(acc1) <- NULL
@@ -219,7 +219,7 @@ kable(acc1)
 
 ## Posterior means for beta1
 ```{r tabs2}
-n <- 7500
+n <- 15000
 #N <- length(m1$sigma2)
 ns <- seq(n, N, by = 10)
 m1ba <- apply(m1$beta1[ns, ], 2, mean)
@@ -255,8 +255,8 @@ plot(m1$beta1[, 2], ylab = "Beta1_2", xlab = "Iteration")
 beta1 <- m1$beta1[ns, ] 
 
 
-ymin <- -.3
-ymax <- .3
+ymin <- -.01
+ymax <- .1
 
 m1ba <- apply(beta1, 2, median)
 plot(m1b[, 1], m1ba, type = "l", ylim = c(ymin, ymax), xlab = "Quantile", ylab = "Beta1")
