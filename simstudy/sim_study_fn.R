@@ -181,7 +181,7 @@ gety <- function(argvals1, betaM, betaf, x1, disttype, sd1 = 0.01) {
 
   # For count outcome
   } else if(disttype == "pois") {
-    # Find mean
+u   # Find mean
     mu <- exp(linf)
 
     # Get poisson
@@ -238,33 +238,22 @@ simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, ar
     
   # Depending on type of regression
   if(disttype == "norm") {  
-    #fmod1 <- flm(x1, y1)
-
-    beta3 <- summary(lm(eval(eqn1), data = dat1))$coef[-1, ] 
-
-
-    # Do univariate regression
-    for(i in 2 : ncol(dat1)) {
-      eqn1 <- paste("y ~", colnames(dat1)[i])
-      beta2[i- 1, ] <- summary(lm(eval(eqn1), data = dat1))$coef[-1, ]
-    }
-
-
-  } else if (disttype == "pois") {
-    #fmod1 <- fglm1(x1, y1, argvals1, ns1)
-    #fmod1 <- NULL
-    beta3 <- summary(glm(eval(eqn1), data = dat1, family = "poisson"))$coef[-1, ] 
-  
-  
-
-    # Do univariate regression
-    for(i in 2 : ncol(dat1)) {
-      eqn1 <- paste("y ~", colnames(dat1)[i])
-      beta2[i- 1, ] <- summary(glm(eval(eqn1), data = dat1, family = "poisson"))$coef[-1, ]
-    }
-  
+    fam <- "gaussian"
+  else if(disttype == "pois") {
+    fam <- "poisson"
   }
-  betaN <- newbeta(x1 = x1, y = y1, argvals2 = argvals1, std = std)
+  
+  beta3 <- summary(glm(eval(eqn1), data = dat1, family = fam))$coef[-1, ] 
+
+
+  # Do univariate regression
+  for(i in 2 : ncol(dat1)) {
+    eqn1 <- paste("y ~", colnames(dat1)[i])
+    beta2[i- 1, ] <- summary(glm(eval(eqn1), data = dat1, family = fam))$coef[-1, ]
+  }
+
+  
+  betaN <- newbeta(x1 = x1, y = y1, argvals2 = argvals1, fam = fam, std = std)
 
   rownames(beta2) <- argvalslr
   rownames(beta3) <- argvalslr 
@@ -281,7 +270,7 @@ simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, ar
 
 
 
-newbeta <- function(x1, y1, argvals2, std = F) {
+newbeta <- function(x1, y1, argvals2, fam, std = F) {
    
   xmat <- apply(x1$xall, 2, quantile, probs = argvals2 )
   xmat <- t(xmat)
@@ -316,7 +305,7 @@ newbeta <- function(x1, y1, argvals2, std = F) {
 
   xs <- as.matrix(data.frame(med, xmat))
   # lasso alpha = 1
-  p1 <- cv.glmnet(xs, y1, family = "poisson", alpha = 1, standardize = F)
+  p1 <- cv.glmnet(xs, y1, family = fam, alpha = 1, standardize = F)
   coefp <- coef(p1, s = "lambda.min")
   med <- coefp[2, ]
   coefp <- data.frame(coefp[-c(1, 2),],NA, NA, NA) 
