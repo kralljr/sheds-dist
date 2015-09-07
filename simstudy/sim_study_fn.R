@@ -239,7 +239,7 @@ simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, ar
   # Depending on type of regression
   if(disttype == "norm") {  
     fam <- "gaussian"
-  else if(disttype == "pois") {
+  }else if(disttype == "pois") {
     fam <- "poisson"
   }
   
