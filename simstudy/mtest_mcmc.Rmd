@@ -196,8 +196,8 @@ beta1a <- rs1$betaf(quants1)
 
 set.seed(10)
 N <- 25000
-m1 <- mcmcout(rs1$y1, t(rs1$x1$x1), quants = quants1, niter = N, burnin = 0, thin = 1)
-save(m1, file = "test_sim2.RData")
+m1 <- mcmcout(rs1$y1, t(rs1$x1$x1), quants = quants1, niter = N, burnin = 0, thin = 1, type = "norm")
+save(m1, file = "test_sim2_norm.RData")
 
 
 ```
