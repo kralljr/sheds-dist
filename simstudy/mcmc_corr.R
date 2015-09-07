@@ -50,9 +50,9 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     beta1.tune <- 0.8
     phi.tune <- 1.5
     
-    beta0.tune <- 0.01
-    beta1.tune <- 1
-    phi.tune <- 1
+    beta0.tune <- 0.001
+    beta1.tune <- .5
+    phi.tune <- 0.5
       
     # From howard 
     #phi.tune <- 0.5
@@ -89,8 +89,8 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     b.phi <- 10
   
     # Try lower cor
-    a.phi <- 3
-    b.phi <- 10
+    #a.phi <- 3
+    #b.phi <- 10
   }
   
 
