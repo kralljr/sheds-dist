@@ -42,7 +42,7 @@ source("mcmc_corr.R")
 
 Jenna Krall
 
-Revised 8/28/15
+Revised 9/7/15
 
 The current project is aimed at using distributions of exposure to outdoor pollution as predictors in a health effects regression model.  While previous studies only had access to daily summaries of exposure (e.g. daily mean), recently simulated exposure data has become available and provides a distribution of exposures for each day.  Having exposure distributions for each day will allow us to determine the changes in exposure distribution that are associated with the greatest increases in adverse health outcomes.  Additionally, we can determine the associations between quantiles of the exposure distribution and adverse health outcomes.  This current analysis is focused on the question of how quantiles of the exposure distribution are associated with adverse health outcomes.  Knowing whether some quantiles are more associated with adverse health outcomes can help to develop more targeted public health campaigns.  For example, if the 20\% quantile is most associated with adverse health outcomes, then those individuals who generally have lower exposures to outdoor pollution should be targeted.
 
@@ -80,9 +80,9 @@ hist(x, main = "Basic simulated exposure distribution", xlab = "Concentration")
 
 ## Shift in exposures
 
-We first assume that the distribution of exposures shifts day-to-day with ambient PM2.5.  Therefore, the shape of the true distribution doesn't change, though day-to-day variability in the sampled exposures may change. To accomplish this, for each day, we sampled $s$ from an exponential distribution to determine the shift (rate = 1/2).  Then, we added this rate to the originally generated data such that the exposures followed truncN$(15 + s_t, 1.5^2)$ for day $t$.
+We first assume that the distribution of exposures shifts day-to-day with ambient PM2.5.  Therefore, the shape of the true distribution doesn't change, though day-to-day variability in the sampled exposures may change. To accomplish this, for each day, we sampled $s$ from a uniform distribution [-5, 20] to determine the shift.  Then, we added this rate to the originally generated data such that the exposures followed truncN$(15, 1.5^2) + s_t$ for day $t$.
 
-In the first row of plots below, we show the histograms and corresponding quantile plots across days for these set of exposures over time.  For the quantiles, we assume that we sampled ten quantiles from [0,1]. In the second row of plots, we show the quantile plots again, along with the smoothed functional quantile plots using bsplines with order equal to `r ns2`.
+In the first row of plots below, we show the histograms and corresponding quantile plots across days for these set of exposures over time.  For the quantiles, we assume that we sampled 20 quantiles from [0,1]. In the second row of plots, we show the quantile plots again, along with the smoothed functional quantile plots using bsplines with order equal to `r ns2`.
 
 
 ```{r shift, fig.height = figh1, fig.width = figw1}
@@ -176,32 +176,32 @@ xtrue <- x1
 # Beta functions
 
 
-We consider 6 functions for beta(q):
+We consider 6 functions for beta(q) for a constant value $v$:
 
-1. Constant beta, $\beta$(q) = 0.05
-2. Larger beta for low and high quantiles, $\beta$(q) = 0.05 + 1/4 * (q - 0.5)^2
-3. Larger beta for low quantiles,  $\beta$(q) = 0.05 + 1/10 * exp(q * -7)
-4. Larger beta for high quantiles, $\beta$(q) = 0.05 + 1 / 10000 * exp(q * 7)  
-5. Only the median has an association with the health outcome, $\beta(0.5) = 0.05$ and $\beta(p) = 0, \forall p\neq 0.5$.  
-6. Only the median, 75\%, and 90\% percentiles have associations with the health outcome $\beta(0.5) = 0.1,~\beta(p) = 0.05,~p \in A=\{0.75, 0.9\}$, $\beta(p) = 0,~p \notin A$.
+1. Constant beta, $\beta$(q) = $v$
+2. Larger beta for low and high quantiles, $\beta$(q) = $v$ + 1/4 * (q - 0.5)^2
+3. Larger beta for low quantiles,  $\beta$(q) = $v$ + 1/10 * exp(q * -7)
+4. Larger beta for high quantiles, $\beta$(q) = $v$ + 1 / 10000 * exp(q * 7)  
 
 These beta functions were chosen to reflect the scenarios where the association doesn't vary by quantile (constant beta), the lower and upper quantiles have a greater effect (if these represent more susceptible individuals), the low quantiles have a greater effect, and the high quantiles have a greater effect.  These beta functions are shown below in the results as the black curves.
 
-The last two beta functions were generated to represent cases where the univariate or multivariate models would be expected to perform well.  However, these cases are unlikely in reality, where if the quantiles are associated with the health outcome, the beta function is likely continuous.
 
 
 # Generating outcome data
 
-Once we chose a distribution of exposures and a beta function, we generated outcomes y as Poisson($\mu$), where $\mu=\exp\{\int_0^1 \beta(q) X(q) dq\}$.  To approximate the integral, we multiplied the observed x values by the beta function at the observed quantiles and computed the area under the curve.
+Once we chose a distribution of exposures and a beta function, we generated outcomes y as Poisson($\mu$) where $\mu=\exp\{\beta_0 + \int_0^1 \beta(q) X(q) dq\}$ or Normal($\mu$, 0.01), where $\mu=\beta_0 + \int_0^1 \beta(q) X(q)$.  The integral is approximated by $\frac{1}{N}\sum_{i=1}^N \beta_i X_i$ where $N$ is the number of quantiles included and $X_i$ is the concentration at quantile $i$.  
 
+<!--To approximate the integral, we multiplied the observed x values by the beta function at the observed quantiles and computed the area under the curve.
+-->
 
 # Simulation study
 
 ## Methods
 
-We generated quantile data from our exposures for 10 quantiles from 0 to 10.  For each simulated scenario (choice of distributions for exposures, and choice of $\beta(q)$), we fitted poisson functional generalized linear models using the fda.usc R package.  For both the exposure and the beta function, we used bsplines with order = `r ns2`.  We show the true beta curves (black) and the estimated curves (and pointwise 95\% confidence intervals) using FDA (orange) in the box of plots below for each scenario.
+We generated quantile data from our exposures for 20 quantiles from 0 to 1.  For each simulated scenario (choice of distributions for exposures, and choice of $\beta(q)$), we simulated outcomes $Y$ using poisson or gaussian distributions.   
 
-To compare our results with more traditional approaches, we fit the quantiles using both univariate log-linear regression (light blue) and multivariate log-linear regression (dark blue).  We assumed that the researcher selected those quantiles of primary interest: 10\%, 25\%, 50\%, 75\%, 90\%.   
+
+To compare our results with more traditional approaches, we fit the quantiles using both univariate regression (green) and multivariate regression (orange), using linear or log-linear regression models, depending on how $y$ was simulated.  We assumed that the researcher selected those quantiles of primary interest: 10\%, 25\%, 50\%, 75\%, 90\%.   
 
 ## Results
 
@@ -252,7 +252,11 @@ for(xi in 1 : 5) {
 ```{r setall}
 cn <- c("X", "Est", "SE", "Zval", "Pval", "Type1", "Reg")
 std1 <- T
+lb1 <- -0.1
+ub1 <- 0.25
 ```
+
+
 
 
 
@@ -269,8 +273,8 @@ std1 <- T
 scaleb <- 1/2
 shift1 <- 0
 
-runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1)                    
-gfun(runsim1)
+runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1, lb1 = lb1, ub1 = ub1)                    
+gfun(runsim1, lb1 = lb1, ub1 = ub1)
 
 save(runsim1, file = "sbeta_noshift.RData")
 
@@ -284,8 +288,8 @@ kable(tab1)
 ```{r beta2, eval = T, fig.height = 10, fig.width = 15}
 scaleb <- 1
 
-runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1)                    
-gfun(runsim1)
+runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1, lb1 = lb1, ub1 = ub1)                    
+gfun(runsim1, lb1 = lb1, ub1 = ub1)
 
 
 save(runsim1, file = "lbeta_noshift.RData")
@@ -308,8 +312,8 @@ kable(tab1)
 scaleb <- 1/2
 shift1 <- 0.01
 
-runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1)                    
-gfun(runsim1)
+runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1, lb1 = lb1, ub1 = ub1)                    
+gfun(runsim1, lb1 = lb1, ub1 = ub1)
 
 
 save(runsim1, file = "sbeta_shift.RData")
@@ -325,8 +329,8 @@ kable(tab1)
 ```{r beta4, eval = T, fig.height = 10, fig.width = 15}
 scaleb <- 1
 
-runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1)                    
-gfun(runsim1)
+runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1, lb1 = lb1, ub1 = ub1)                    
+gfun(runsim1, lb1 = lb1, ub1 = ub1)
 
 
 save(runsim1, file = "lbeta_shift.RData")
