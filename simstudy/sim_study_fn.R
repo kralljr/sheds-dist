@@ -1,4 +1,4 @@
-getx <- function(ny, na, argvals1, typex = "shift", mean1 = 15, sd1 = 1.5, rate1 = 1/2, ns1 = 10) {
+getx <- function(ny, na, argvals1, argvalslr = NULL, typex = "shift", mean1 = 15, sd1 = 1.5, rate1 = 1/2, ns1 = 10) {
   # Specify number of arguments/quantiles
   # Specify total number of x (quantiles X days)
   N <- na * ny
@@ -76,16 +76,25 @@ getx <- function(ny, na, argvals1, typex = "shift", mean1 = 15, sd1 = 1.5, rate1
   
   # Find quantiles
   x1 <- apply(xall, 2, quantile, probs = argvals1)
-  x1 <- abs(x1)
+  #x1 <- abs(x1)
+
+  # Get quantiles for regression
+  if(is.null(argvalslr)) {
+    argvalslr <- argvals1
+  }
+
+  xREG <- apply(xall, 2, quantile, probs = argvalslr)
 
   # Get functional x for plot
-  xfn1 <- getxfn(x1, argvals1, ns1)
+  xfn1 <- getxfn(abs(x1), argvals1, ns1)
   xfn <- xfn1$xfn
   basis1 <- xfn1$basis1
 
+  
+  
   # Get outcome 
   #return(list(x1 = x1, xall = xall, xM = xM))
-  return(list(x1 = x1, xall = xall, xfn = xfn, basis1 = basis1, xM = xM))
+  return(list(x1 = x1, xall = xall, xfn = xfn, basis1 = basis1, xM = xM, xREG = xREG))
 
 }
 
@@ -141,7 +150,7 @@ gety <- function(argvals1, betaM, betaf, x1, disttype, sd1 = 0.01) {
   xM <- x1$xM
   # Get values of beta at x
 
-  # If FDA is truth
+  # If functional beta is truth
   if(class(betaf) == "function") {
     beta1 <- betaf(argvals1)
 
@@ -153,6 +162,7 @@ gety <- function(argvals1, betaM, betaf, x1, disttype, sd1 = 0.01) {
 
   # If other is truth
   } else{
+    stop("Beta must be a function")
     nums <- as.numeric(names(betaf))/100
     
     xhold <- apply(x1$xall, 2, quantile, probs = nums)
@@ -206,16 +216,8 @@ simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, ar
   #xfn <- x1$xfn
   #ns1 <- x1$basis1$nbasis
 
-  # Traditional univariate and multivariate regression
-  # Set up data frame
-  if(!quants) {
-	  xmat <- apply(x1$xall, 2, quantile, probs = argvalslr )
-	  if(length(argvalslr) > 1) {
-		  xmat <- t(xmat)
-	  }
-  }else{
-	  xmat <- t(x1$x1)
-  }
+  xmat <- t(x1$xREG)
+
 
   # Standardize?
   if(std) {
@@ -271,11 +273,11 @@ simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, ar
 
 
 newbeta <- function(x1, y1, argvals2, fam, std = F) {
-   
-  xmat <- apply(x1$xall, 2, quantile, probs = argvals2 )
-  xmat <- t(xmat)
+  
+    
+  xmat <- t(x1$x1)
 
-  med <- apply(x1$xall, 2, median)
+  med <- x1$xM
 
   lm1 <- function(x) {
      lm(x ~ med)$resid
@@ -397,7 +399,7 @@ runsim <- function(x1use, xs1, ts1, cn, lb1 = -.5, ub1 = 0.5,
     xi2 <- xs1[i, 2]
 
     # get betas 
-    gb1 <- getbeta(ti1, scale = scaleb)
+    gb1 <- getbeta(ti1, val = val1,scale = scaleb)
     betas <- gb1(argvals1)
 
     # format beta data
