@@ -188,8 +188,8 @@ source("mcmc_corr.R")
 
 # try simulated data
 
-load("lbeta_shift.RData")
-rs1 <- runsim1$simout1[[7]]
+load("sbeta_shift.RData")
+rs1 <- runsim1$simout1[[9]]
 quants1 <- rs1$argvals1
 beta1a <- rs1$betaf(quants1)
 
@@ -197,7 +197,7 @@ beta1a <- rs1$betaf(quants1)
 set.seed(10)
 N <- 25000
 m1 <- mcmcout(rs1$y1, t(rs1$x1$x1), quants = quants1, niter = N, burnin = 0, thin = 1, type = "norm")
-save(m1, file = "norm_high_lbeta_shift.RData")
+save(m1, file = "norm_x2_sbeta_shift.RData")
 
 
 ```
