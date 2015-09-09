@@ -51,15 +51,18 @@ This document includes a preliminary simulation study to determine whether using
 
 
 ```{r argv}
-naG <- 100
-na1 <- 20
+naG <- 105
+na1 <- 30
 argvals2 <- seq(0.05, 0.95, length = na1)
+ag1 <- c(0.1, 0.25, 0.5, 0.75, 0.9)
+
+
 ny <- 100
 ns2 <- 4
 
-disttype1 <- "pois"
+#disttype1 <- "pois"
 
-#disttype1 <- "norm"
+disttype1 <- "norm"
 sd2 <- 0.001
 ```
 
@@ -148,26 +151,90 @@ The Atlanta SHEDS data were scaled up from ZCTAs by sampling from each ZCTA prop
 ```{r wtrue, fig.height = figh1, fig.width = figw1}
 
 #Detrend date?
-xall <- read.csv(file.path(fp2, "SHEDS_pm_atl_quants.csv"))[, -1]
-xall <-  t(as.matrix(xall))
 
+# Get all data
+xall <- read.csv(file.path(fp2, "SHEDS_pm_atl.csv"))[, c(2, 4)]
+
+
+# Get quantiles
+quants1 <- tapply(xall$pm, xall$date, quantile, probs = argvals2)
+quants2 <- sapply(quants1, function(x) x)
+
+# Get quantiles
+quantsREG <- tapply(xall$pm, xall$date, quantile, probs = ag1)
+quantsREG <- t(sapply(quantsREG, function(x) x))
+
+
+
+
+
+# Get in form for ggplot
+x1 <- quants2
+dates <- unique(xall[, 1])
+samp1 <- sample(dates, 100)
+
+# Make smaller data
+mxall <- xall[which(xall[, 1] %in% samp1),]
+
+
+samp1 <- samp1[1]
+samp2 <- paste0("x", gsub("-", ".", samp1))
+
+
+# Get in form for ggplot
+d1 <- data.frame(argvals2, x1)
+mx <- melt(d1, id.vars = "argvals2")
+mx$variable <- tolower(mx$variable)
+
+# Select one day to highlight
+mx <- mutate(mx, select1 = ifelse(variable == samp2, "Yes", "No"))
+mxall <- mutate(mxall, select1 = ifelse(date == samp1, "Yes", "No"))
+
+# Order so plot highlighted last
+lev1 <- mxall$date[order(mxall$select1)]
+mxall$date <- factor(mxall$date, levels = unique(lev1))
+
+lev1 <- mx$variable[order(mx$select1)]
+mx$variable <- factor(mx$variable, levels = unique(lev1))
+
+# Create density plots of all x's
+g1 <- ggplot(data = mxall, aes(x = pm, group = date, colour = select1)) +
+  geom_density(aes(size = select1)) + theme_bw() +
+  scale_colour_manual(guide = F, values = c("grey80", "red")) +
+  scale_size_manual(guide = F, values = c(1, 1.4)) +
+  theme(legend.position = "none") +
+  xlab("Concentration") + ggtitle("Density plots of personal exposure")
+
+# Create quantile plots of x quantiles
+g2 <- ggplot(data = mx, aes(x = argvals2, y = value, group = variable, colour = select1)) +
+  geom_line(aes(size = select1)) + theme_bw() +
+
+  scale_colour_manual(guide = F, values = c("grey80", "red")) +
+  scale_size_manual(guide = F, values = c(1, 1.4)) +
+
+  theme(legend.position = "none") + xlab("Quantile") +
+  ylab("Concentration") + ggtitle("Plot of quantiles of concentration")
+
+# Arrange output for plots 
+grid.arrange(g1, g2, ncol = 2)
+
+
+
+
+# Save output
 x1 <- list()
-x1$xall <- xall
+x1$xall <- t(xall)
 
-xM <- apply(xall, 2, mean)
-#xall <- sweep(xall, 2, xM)
+xM <- quantsREG[, "50%"]
 
-x1$x1 <- (xall)
-
+x1$x1 <- quants2
+x1$xREG <- t(quantsREG)
 
 
 x1$xfn <- getxfn(x1$x1, argvals2, ns1 = ns2) 
 x1$basis1 <- x1$xfn$basis1
 x1$xfn <- x1$xfn$xfn
 x1$xM <- xM
-
-
-plotallx(x1, argvals2) 
 
 xtrue <- x1
 
@@ -217,8 +284,7 @@ To compare our results with more traditional approaches, we fit the quantiles us
 
 
 ny <- 1000
-ag1 <- c(0.1, 0.25, 0.5, 0.75, 0.9)
-#ag1 <- argvals2
+
   
 # for each reasonable comb
 ts1 <- c("constant", "high", "low", "high", "low", "x2", "high", "low", "x2")
@@ -236,7 +302,7 @@ x1use <- list()
 for(xi in 1 : 5) {
 
   if(xi < 5) {
-    x1use[[xi]] <- getx(ny, naG, argvals2, typex = tx[xi], ns1 = ns2)
+    x1use[[xi]] <- getx(ny, naG, argvals2, argvalslr = ag1, typex = tx[xi], ns1 = ns2)
   } else if (xi == 5){  
     x1use[[xi]] <- xtrue
 }}
@@ -273,7 +339,7 @@ ub1 <- 0.25
 scaleb <- 1/2
 shift1 <- 0
 
-runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1, lb1 = lb1, ub1 = ub1)                    
+runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1, lb1 = lb1, ub1 = ub1, argvalslr = )                    
 gfun(runsim1, lb1 = lb1, ub1 = ub1)
 
 save(runsim1, file = "sbeta_noshift.RData")
