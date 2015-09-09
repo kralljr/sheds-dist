@@ -42,109 +42,36 @@ source("mcmc_corr.R")
 
 Jenna Krall
 
-Revised 9/7/15
+Revised 9/9/15
 
 The current project is aimed at using distributions of exposure to outdoor pollution as predictors in a health effects regression model.  While previous studies only had access to daily summaries of exposure (e.g. daily mean), recently simulated exposure data has become available and provides a distribution of exposures for each day.  Having exposure distributions for each day will allow us to determine the changes in exposure distribution that are associated with the greatest increases in adverse health outcomes.  Additionally, we can determine the associations between quantiles of the exposure distribution and adverse health outcomes.  This current analysis is focused on the question of how quantiles of the exposure distribution are associated with adverse health outcomes.  Knowing whether some quantiles are more associated with adverse health outcomes can help to develop more targeted public health campaigns.  For example, if the 20\% quantile is most associated with adverse health outcomes, then those individuals who generally have lower exposures to outdoor pollution should be targeted.
 
-This document includes a preliminary simulation study to determine whether using the quantiles of exposure in a functional regression model yields good estimates of the health effects.  One concern is that if using standard regression techniques provides comparable results in this scenario, there is no reason to pursue functional data analysis. 
 
 
 
 ```{r argv}
-naG <- 105
 na1 <- 30
 argvals2 <- seq(0.05, 0.95, length = na1)
-ag1 <- c(0.1, 0.25, 0.5, 0.75, 0.9)
 
-
-ny <- 100
-ns2 <- 4
-
-#disttype1 <- "pois"
 
 disttype1 <- "norm"
 sd2 <- 0.001
 ```
 
-# Description of creating distributions of exposures
+# Data
+
+The Atlanta SHEDS data were scaled up from ZCTAs by sampling from each ZCTA proportional to its population (with the largest ZCTA, 30044, sampling all 100 individuals).  There were 193 ZCTAs in the file.  By sampling up to Atlanta, we obtained 1461 days from 1999-2002.   
 
 
-In order to perform the simulation study, we first had to generate distributions of exposures for each day.  To start, we assumed that the distribution of exposures on each day was truncN$(15, 1.5^2)$ where the concentrations were truncated below by zero.  The histogram of this distribution is shown below.  Then, we modified this distribution according to how the distributions might change day-to-day, as described in the following sections. 
+# Simulation study
+
+## Methods 
+
+To conduct the simulation study, we utilized SHEDS exposures and simulated ED visits for four different assumed associations between exposure distributions and daily ED visits.   
 
 
 
 
-```{r truncn}
-x <- rtruncnorm(10000, a = 0, mean = 15, sd = 1.5)
-hist(x, main = "Basic simulated exposure distribution", xlab = "Concentration")
-
-```
-
-
-## Shift in exposures
-
-We first assume that the distribution of exposures shifts day-to-day with ambient PM2.5.  Therefore, the shape of the true distribution doesn't change, though day-to-day variability in the sampled exposures may change. To accomplish this, for each day, we sampled $s$ from a uniform distribution [-5, 20] to determine the shift.  Then, we added this rate to the originally generated data such that the exposures followed truncN$(15, 1.5^2) + s_t$ for day $t$.
-
-In the first row of plots below, we show the histograms and corresponding quantile plots across days for these set of exposures over time.  For the quantiles, we assume that we sampled 20 quantiles from [0,1]. In the second row of plots, we show the quantile plots again, along with the smoothed functional quantile plots using bsplines with order equal to `r ns2`.
-
-
-```{r shift, fig.height = figh1, fig.width = figw1}
-set.seed(1528)
-
-x1 <- getx(ny, naG, argvals2, typex = "shift", ns1 = ns2)
-#ns2 <- 5
-
-plotallx(x1, argvals2)
-```
-
-## Long right tail
-
-Another way the distributions in exposure might change is if when PM2.5 increases outside, only those who are in the right tail (e.g. outdoor workers) have increases in exposure.  
-
-To create the long right tail, we sampled from the uniform $[2, 6]$ distribution a shift parameter $a_t$.  Then, we computed $s_t = ((x > 15) * (x - 15) * a_t)^+$.  This positive part expression is simply the concentrations $x$ for concentrations less than the mean (15) and a line with slope $a_t$ for concentrations greater than the mean.  We added $s_t$ to the concentrations $x$ to create distributions with changing right tails. 
-
-
-```{r longr, fig.height = figh1, fig.width = figw1}
-x1 <- getx(ny, naG, argvals2, typex = "longr", ns1 = ns2)
-
-
-plotallx(x1, argvals2)
-
-```
-
-## Long left tail
-
-The exposures might increase more for the smaller quantiles if, for example, on nice days, office workers or individuals in assisted living make an effort to go outdoors, and therefore increase their exposure.  We generated this distribution of exposures in a similar way to the exposures for the long right tail in the previous section. 
-
-
-To create the long left tail, we sampled from the uniform $[0, 2]$ distribution a shift parameter $a_t$.  Then, we computed $s_t = ((x < 15) * (15 - x) * -a_t)^+$.  This positive part expression is simply the concentrations $x$ for concentrations greater than the mean (15) and a line with slope $-a_t$ for concentrations less than the mean.  We added $s_t$ to the concentrations $x$ to create distributions with changing left tails. 
-
-
-```{r longl, fig.height = figh1, fig.width = figw1}
-x1 <- getx(ny, naG, argvals2, typex = "longl", ns1 = ns2)
-
-
-plotallx(x1, argvals2)
-
-```
-
-## Increased exposure variance
-
-We also consider a simulated scenario where the variability of exposures increases on some days, which could be driven by more varied behavior on nice days, where some people do not change their low exposure habits and others go outdoors.  To accomplish this, we generated exposures as truncN$(15, \sigma_t)$, where $\sigma_t$ was allowed to vary from day-to-day.  We chose $\sigma_t$ from a random uniform distribution between 0.3 and 6.  
-
-```{r wide, fig.height = figh1, fig.width = figw1}
-x1 <- getx(ny, naG, argvals2, typex = "wide", ns1 = ns2)
-
-
-plotallx(x1, argvals2)
-
-```
-
-
-## True exposures
-
-
-The Atlanta SHEDS data were scaled up from ZCTAs by sampling from each ZCTA proportional to its population (with the largest ZCTA, 30044, sampling all 100 individuals).  There were 193 ZCTAs in the file.  
 
 
 
@@ -154,7 +81,7 @@ The Atlanta SHEDS data were scaled up from ZCTAs by sampling from each ZCTA prop
 
 # Get all data
 xall <- read.csv(file.path(fp2, "SHEDS_pm_atl.csv"))[, c(2, 4)]
-
+xall[, 1] <- as.Date(xall[, 1])
 
 # Get quantiles
 quants1 <- tapply(xall$pm, xall$date, quantile, probs = argvals2)
@@ -240,7 +167,7 @@ xtrue <- x1
 
 ```
 
-# Beta functions
+## Simulated associations
 
 
 We consider 6 functions for beta(q) for a constant value $v$:
@@ -253,6 +180,20 @@ We consider 6 functions for beta(q) for a constant value $v$:
 These beta functions were chosen to reflect the scenarios where the association doesn't vary by quantile (constant beta), the lower and upper quantiles have a greater effect (if these represent more susceptible individuals), the low quantiles have a greater effect, and the high quantiles have a greater effect.  These beta functions are shown below in the results as the black curves.
 
 
+```{r totb}
+shift1 <- 0.01
+scaleb <- 1/2
+
+auc1 <- vector()
+typeb <- c("constant", "x2", "high", "low")
+for(i in 1 : 4) {
+  betaf <- getbeta(typeb[i], val = shift1, scale = scaleb)
+  bf <- betaf(argvals2)
+  auc1[i] <- auc(argvals2, bf)
+  print(100 * (exp(auc1[i] * 10) - 1))
+}
+
+```
 
 # Generating outcome data
 
