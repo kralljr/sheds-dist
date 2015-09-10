@@ -191,7 +191,7 @@ gety <- function(argvals1, betaM, betaf, x1, disttype, sd1 = 0.01) {
 
   # For count outcome
   } else if(disttype == "pois") {
-u   # Find mean
+   # Find mean
     mu <- exp(linf)
 
     # Get poisson
@@ -255,7 +255,9 @@ simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, ar
   }
 
   
-  betaN <- newbeta(x1 = x1, y = y1, argvals2 = argvals1, fam = fam, std = std)
+  #betaN <- newbeta(x1 = x1, y = y1, argvals2 = argvals1, fam = fam, std = std)
+  betaN <- NULL
+
 
   rownames(beta2) <- argvalslr
   rownames(beta3) <- argvalslr 
@@ -399,7 +401,7 @@ runsim <- function(x1use, xs1, ts1, cn, lb1 = -.5, ub1 = 0.5,
     xi2 <- xs1[i, 2]
 
     # get betas 
-    gb1 <- getbeta(ti1, val = val1,scale = scaleb)
+    gb1 <- getbeta(ti1, val = val1[i],scale = scaleb[i])
     betas <- gb1(argvals1)
 
     # format beta data
@@ -423,8 +425,8 @@ runsim <- function(x1use, xs1, ts1, cn, lb1 = -.5, ub1 = 0.5,
 
     simout1[[i]] <- simout(xuse1, argvals1, betaM = betaM1,
                    argvalslr = argvalslr,
-                   typeb = ti1, sd1 = sd2, disttype = disttype1, val1 = val1,
-                   quants = F, std = std1, scale1 = scaleb)
+                   typeb = ti1, sd1 = sd2, disttype = disttype1, val1 = val1[i],
+                   quants = F, std = std1, scale1 = scaleb[i])
 
     sim1 <- simout1[[i]]
     x <- as.numeric(rownames(sim1$beta2))
@@ -432,10 +434,10 @@ runsim <- function(x1use, xs1, ts1, cn, lb1 = -.5, ub1 = 0.5,
     type2 <- rep("Univariate", length(x))
     x1 <- data.frame(x, sim1$beta2, type1, type2)
     colnames(x1) <- cn
+    x1$Reg <- as.character(x1$Reg)
 
     if(i == 1) {
       xfull <- x1
-      class(xfull$Reg) <- "character"
     }else{
       xfull <- full_join(x1, xfull)
     }
@@ -448,15 +450,18 @@ runsim <- function(x1use, xs1, ts1, cn, lb1 = -.5, ub1 = 0.5,
 
 
     # Add in new betas
-    x <- argvals1
-    type2 <- rep("Penalized", length(x))
-    x2 <- data.frame(x, sim1$betaN[[1]], type1, type2)
-    colnames(x2) <- cn
-
-
-    xfull <- full_join(x2, xfull)
+    if(!is.null(sim1$betaN)) {
+      x <- argvals1
+      type2 <- rep("Penalized", length(x))
+      x2 <- data.frame(x, sim1$betaN[[1]], type1, type2)
+      colnames(x2) <- cn
     
-    med <- c(med, sim1$betaN[[2]])
+      xfull <- full_join(x2, xfull)
+    
+      med <- c(med, sim1$betaN[[2]])
+    }
+
+
   }
 
   xfull$Type1 <- factor(xfull$Type1, levels = t1)
