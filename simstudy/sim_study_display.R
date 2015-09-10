@@ -203,16 +203,15 @@ formfull <- function(xfull, lb1 = -0.5, ub1 = 0.5) {
 
 
 
-gfun <- function(runsimout, lb1 = -.5, ub1 = 0.5, betan = F) {
-  datb <- runsimout$datb
-  xfull <- runsimout$xfull
+gfun <- function(xfull, datb, lb1 = -.5, ub1 = 0.5, betan = F) {
   #Plot all
-  pd <- position_dodge(0.05)
+  pd <- position_dodge(0.02)
   cols <- brewer.pal(3,  "Dark2")
 
   if(!betan) {
     xfull <- xfull[xfull$Reg != "Penalized",]
   }
+  xfull <- dplyr::select(xfull, Reg, X, Est, LB2, UB2, Type1)
   xfull <- xfull[complete.cases(xfull), ]
 
   g1 <- ggplot() +xlab("Quantile") + ylab("Beta estimate") +
