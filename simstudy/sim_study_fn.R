@@ -145,7 +145,7 @@ getbeta <- function(type, val = 0, scale = 1) { function(x) {
 }}
 
 
-gety <- function(argvals1, betaM, betaf, x1, disttype, sd1 = 0.01) {
+gety <- function(argvals1, betaM, betaf, x1, disttype, beta0 = 0, sd1 = 0.01) {
   xvar1 <- x1$x1
   xM <- x1$xM
   # Get values of beta at x
@@ -178,8 +178,8 @@ gety <- function(argvals1, betaM, betaf, x1, disttype, sd1 = 0.01) {
   }
 
 
-  # Add in median
-  linf <- linf + xM * betaM
+  # Add in median and beta0
+  linf <- linf + xM * betaM + beta0
 
 
   # For normally dist outcome
@@ -202,7 +202,7 @@ gety <- function(argvals1, betaM, betaf, x1, disttype, sd1 = 0.01) {
 
 
 
-simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, argvalslr = argvals1, val1 = 1, std = F, quants = F, scale1 = 1,...) {
+simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, argvalslr = argvals1, val1 = 1, std = F, quants = F, scale1 = 1, beta0 = 0,...) {
   # Get function of beta
   if(class(typeb) != "numeric") {
     betaf <- getbeta(typeb, val = val1, scale = scale1)
@@ -210,7 +210,7 @@ simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, ar
     betaf <- typeb
   }
   # Generate y
-  y1 <- gety(argvals1, betaM, betaf, x1, disttype, sd1)
+  y1 <- gety(argvals1, betaM, betaf, x1, disttype, beta0, sd1)
   
   # Get functional x
   #xfn <- x1$xfn
@@ -388,7 +388,7 @@ fglm <- function(x1, y1, argvals1, ns1) {
 
 runsim <- function(x1use, xs1, ts1, cn, lb1 = -.5, ub1 = 0.5,
                    argvals1 = argvals2, argvalslr = ag1, scaleb = 1, betaM1 = 0,
-                   val1 = 0, disttype1 = "pois", std1 = T, sd2 = 0.01) {
+                   val1 = 0, disttype1 = "pois", std1 = T, sd2 = 0.01, beta0 = 0) {
 
   #specify output
   med <- 0
@@ -426,7 +426,7 @@ runsim <- function(x1use, xs1, ts1, cn, lb1 = -.5, ub1 = 0.5,
     simout1[[i]] <- simout(xuse1, argvals1, betaM = betaM1,
                    argvalslr = argvalslr,
                    typeb = ti1, sd1 = sd2, disttype = disttype1, val1 = val1[i],
-                   quants = F, std = std1, scale1 = scaleb[i])
+                   quants = F, std = std1, scale1 = scaleb[i], beta0 = beta0)
 
     sim1 <- simout1[[i]]
     x <- as.numeric(rownames(sim1$beta2))
