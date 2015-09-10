@@ -211,8 +211,9 @@ gfun <- function(runsimout, lb1 = -.5, ub1 = 0.5, betan = F) {
   cols <- brewer.pal(3,  "Dark2")
 
   if(!betan) {
-    xfull <- xfull[-which(xfull$Reg == "Penalized"),]
+    xfull <- xfull[xfull$Reg != "Penalized",]
   }
+  xfull <- xfull[complete.cases(xfull), ]
 
   g1 <- ggplot() +xlab("Quantile") + ylab("Beta estimate") +
     geom_line(data = datb, aes(x = quant, y = beta)) + 
