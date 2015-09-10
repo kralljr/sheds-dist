@@ -50,11 +50,12 @@ The current project is aimed at using distributions of exposure to outdoor pollu
 
 
 ```{r argv}
+ns2 <- 4
+
 na1 <- 30
 argvals2 <- seq(0.05, 0.95, length = na1)
+ag1 <- argvals2
 
-
-disttype1 <- "norm"
 sd2 <- 0.001
 ```
 
@@ -75,9 +76,8 @@ To conduct the simulation study, we utilized SHEDS exposures and simulated ED vi
 
 
 
-```{r wtrue, fig.height = figh1, fig.width = figw1}
-
-#Detrend date?
+```{r wtrue, cache = T, fig.height = figh1, fig.width = figw1}
+#Read and get quantiles
 
 # Get all data
 xall <- read.csv(file.path(fp2, "SHEDS_pm_atl.csv"))[, c(2, 4)]
@@ -92,8 +92,14 @@ quantsREG <- tapply(xall$pm, xall$date, quantile, probs = ag1)
 quantsREG <- t(sapply(quantsREG, function(x) x))
 
 
+xM  <- tapply(xall$pm, xall$date, median)
 
 
+```
+
+
+
+```{r format, fig.height = figh1, fig.width = figw1}
 
 # Get in form for ggplot
 x1 <- quants2
@@ -124,6 +130,16 @@ mxall$date <- factor(mxall$date, levels = unique(lev1))
 lev1 <- mx$variable[order(mx$select1)]
 mx$variable <- factor(mx$variable, levels = unique(lev1))
 
+```
+
+
+
+
+```{r plottrue, fig.height = figh1, fig.width = figw1}
+
+
+
+
 # Create density plots of all x's
 g1 <- ggplot(data = mxall, aes(x = pm, group = date, colour = select1)) +
   geom_density(aes(size = select1)) + theme_bw() +
@@ -152,7 +168,6 @@ grid.arrange(g1, g2, ncol = 2)
 x1 <- list()
 x1$xall <- t(xall)
 
-xM <- quantsREG[, "50%"]
 
 x1$x1 <- quants2
 x1$xREG <- t(quantsREG)
@@ -167,7 +182,7 @@ xtrue <- x1
 
 ```
 
-## Simulated associations
+### Simulated associations
 
 
 We consider 6 functions for beta(q) for a constant value $v$:
@@ -181,35 +196,41 @@ These beta functions were chosen to reflect the scenarios where the association 
 
 
 ```{r totb}
-shift1 <- 0.01
-scaleb <- 1/2
+shift1 <- c(0.002, rep(0.002, 3))
+scaleb <- c(1, 1/8, 1/6, 1/6)
 
 auc1 <- vector()
 typeb <- c("constant", "x2", "high", "low")
 for(i in 1 : 4) {
-  betaf <- getbeta(typeb[i], val = shift1, scale = scaleb)
+  betaf <- getbeta(typeb[i], val = shift1[i], scale = scaleb[i])
   bf <- betaf(argvals2)
   auc1[i] <- auc(argvals2, bf)
-  print(100 * (exp(auc1[i] * 10) - 1))
+  #print(100 * (exp(auc1[i] * 10) - 1))
+  #print(exp(10 * auc1[i]))
 }
+
+kable(data.frame(typeb, auc1))
 
 ```
 
-# Generating outcome data
+### Generating outcome data
 
 Once we chose a distribution of exposures and a beta function, we generated outcomes y as Poisson($\mu$) where $\mu=\exp\{\beta_0 + \int_0^1 \beta(q) X(q) dq\}$ or Normal($\mu$, 0.01), where $\mu=\beta_0 + \int_0^1 \beta(q) X(q)$.  The integral is approximated by $\frac{1}{N}\sum_{i=1}^N \beta_i X_i$ where $N$ is the number of quantiles included and $X_i$ is the concentration at quantile $i$.  
 
 <!--To approximate the integral, we multiplied the observed x values by the beta function at the observed quantiles and computed the area under the curve.
 -->
 
-# Simulation study
 
-## Methods
+### Simulation study
 
 We generated quantile data from our exposures for 20 quantiles from 0 to 1.  For each simulated scenario (choice of distributions for exposures, and choice of $\beta(q)$), we simulated outcomes $Y$ using poisson or gaussian distributions.   
 
 
-To compare our results with more traditional approaches, we fit the quantiles using both univariate regression (green) and multivariate regression (orange), using linear or log-linear regression models, depending on how $y$ was simulated.  We assumed that the researcher selected those quantiles of primary interest: 10\%, 25\%, 50\%, 75\%, 90\%.   
+<!--To compare our results with more traditional approaches, we fit the quantiles using both univariate regression (green) and multivariate regression (orange), using linear or log-linear regression models, depending on how $y$ was simulated.  We assumed that the researcher selected those quantiles of primary interest: 10\%, 25\%, 50\%, 75\%, 90\%.   
+-->
+
+
+
 
 ## Results
 
@@ -221,32 +242,23 @@ To compare our results with more traditional approaches, we fit the quantiles us
 
 
 
-```{r getx, eval = T, fig.height = 10, fig.width = 15}
+```{r getx, eval = T, fig.height = 10, fig.width = 15} 
 
-
-ny <- 1000
-
-  
 # for each reasonable comb
-ts1 <- c("constant", "high", "low", "high", "low", "x2", "high", "low", "x2")
-xs1 <- c("shift", "longr", "longl", "wide", "wide", "wide", "true", "true", "true")
-xs1 <- data.frame(xs1, c(1, 2, 3, 4, 4, 4, 5, 5, 5))
+ts1 <- c("constant", "x2", "high", "low")
+xs1 <- rep("true", 4)
+xs1 <- data.frame(xs1, rep(1, 4))
 
 
-dt1 <- "norm"
+
+
 
 
 tx <- unique(xs1[, 1])
 
 x1use <- list()
 # For each x
-for(xi in 1 : 5) {
-
-  if(xi < 5) {
-    x1use[[xi]] <- getx(ny, naG, argvals2, argvalslr = ag1, typex = tx[xi], ns1 = ns2)
-  } else if (xi == 5){  
-    x1use[[xi]] <- xtrue
-}}
+x1use[[1]] <- xtrue
 
 
 
@@ -259,8 +271,8 @@ for(xi in 1 : 5) {
 ```{r setall}
 cn <- c("X", "Est", "SE", "Zval", "Pval", "Type1", "Reg")
 std1 <- T
-lb1 <- -0.1
-ub1 <- 0.25
+lb1 <- -0.5
+ub1 <- 0.5
 ```
 
 
@@ -268,140 +280,32 @@ ub1 <- 0.25
 
 
 
-### No shift
 
 
 
 
-#### Small betas
-```{r beta1, eval = T, fig.height = 10, fig.width = 15}
+#### Normal distribution
 
+Assume Y is normally distributed ($\sigma=0.01$) and fit linear regression models.
 
-scaleb <- 1/2
-shift1 <- 0
-
+```{r norm, eval = T, fig.height = 10, fig.width = 15}
+dt1 <- "norm"
 runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1, lb1 = lb1, ub1 = ub1, argvalslr = )                    
 gfun(runsim1, lb1 = lb1, ub1 = ub1)
 
-save(runsim1, file = "sbeta_noshift.RData")
+save(runsim1, file = "true-sim-normal.RData")
 
-tab1 <- data.frame(levels(runsim1$xfull$Type1), round(runsim1$med, 3))
-colnames(tab1) <- c("Type", "Beta_median")
-kable(tab1)
 ```
 
+#### Poisson distribution
 
-#### Larger betas
-```{r beta2, eval = T, fig.height = 10, fig.width = 15}
-scaleb <- 1
+Assume Y is counts (ED visits) and Poisson distributed and fit log-linear regression models.
 
-runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1, lb1 = lb1, ub1 = ub1)                    
+```{r pois, eval = T, fig.height = 10, fig.width = 15}
+dt1 <- "pois"
+runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1, lb1 = lb1, ub1 = ub1, argvalslr = )                    
 gfun(runsim1, lb1 = lb1, ub1 = ub1)
 
+save(runsim1, file = "true-sim-poisson.RData")
 
-save(runsim1, file = "lbeta_noshift.RData")
-
-tab1 <- data.frame(levels(runsim1$xfull$Type1), round(runsim1$med, 3))
-colnames(tab1) <- c("Type", "Beta_median")
-kable(tab1)
-```
-
-
-
-
-
-### Shift
-
-#### Small betas
-```{r beta3, eval = T, fig.height = 10, fig.width = 15}
-
-
-scaleb <- 1/2
-shift1 <- 0.01
-
-runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1, lb1 = lb1, ub1 = ub1)                    
-gfun(runsim1, lb1 = lb1, ub1 = ub1)
-
-
-save(runsim1, file = "sbeta_shift.RData")
-
-
-tab1 <- data.frame(levels(runsim1$xfull$Type1), round(runsim1$med, 3))
-colnames(tab1) <- c("Type", "Beta_median")
-kable(tab1)
-```
-
-
-#### Larger betas
-```{r beta4, eval = T, fig.height = 10, fig.width = 15}
-scaleb <- 1
-
-runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1, lb1 = lb1, ub1 = ub1)                    
-gfun(runsim1, lb1 = lb1, ub1 = ub1)
-
-
-save(runsim1, file = "lbeta_shift.RData")
-
-tab1 <- data.frame(levels(runsim1$xfull$Type1), round(runsim1$med, 3))
-colnames(tab1) <- c("Type", "Beta_median")
-kable(tab1)
-
-```
-
-
-
-
-
-```{r, eval = F}
-#8/31/15
-# stdize, don't scale
-
-# try by hand
-bf <- getbeta("high")
-
-
-ag1 <- c(0.1, 0.25, 0.5, 0.75, 0.9)
-ag1 <- argvals2
-
-betas1 <- bf(ag1)  
-
-xuse1 <- x1use[[4]]$xall  
-xuse <- t(apply(xuse1,  2, quantile, probs = ag1))
-
-
-linfun <-  rowSums(sweep(xuse, 2, betas1, "*"))
-set.seed(10)
-y <- rpois(ny, exp(linfun))
-
-
-#stdize
-mn1 <- apply(xuse, 2, mean)
-sd1 <- apply(xuse, 2, sd)
-xuse <- sweep(xuse, 2, mn1, "-")
-xuse <- sweep(xuse, 2, sd1, "/")
-
-
-
-
-#check reality
-meds <- apply(xuse1, 2, median)
-summary(linfun / meds)
-
-glm1 <- glm(y ~ -1 + meds, family = "poisson")
-exp(glm1$coef * 8)
-
-
-dat1 <- data.frame(y, xuse)
-p1 <-  paste0("x", seq(1, ncol(dat1) - 1))
-colnames(dat1)[-1] <- p1
-eqn1 <- paste("y ~ ", paste(p1, collapse = " + "))
-glm1 <- glm(eval(eqn1), data = dat1, family = "poisson")
-gc1 <- glm1$coef[-1]
-plot(ag1, gc1, ylim = c(-0.5, .5))
-points(ag1, betas1, col = "red")
-sglm1 <- summary(glm1)$coef[-1, ]
-lb <- sglm1[, 1] - 1.96 * sglm1[, 2]
-
-ub <- sglm1[, 1] + 1.96 * sglm1[, 2]
-segments(x0 = ag1, y0 = lb, y1 = ub, col = 1)
 ```
