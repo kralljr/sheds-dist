@@ -23,186 +23,65 @@ opts_chunk$set(message = F, fig.align = "center", warning = F, echo = F)
 
 
 
-```{r}
-
-# Howard to-do
-# DONE 1. Simulate beta1 individually
-# DONE 2. Use real data
-# DONE 3. Use more complicated beta: use phi to draw beta
-# 3b. Use a functional beta
-# DONE 4. Random x's- check correlation in x's: correlation in simulated is very high
-
-
-# 5. Separate out median effect
-# 6. Other MV approach- book? 
-
-```
-
-
-```{r info}
-
-# CHECK! Works for nothing
-# CHECK!  Works for beta0
-
-
-# Set up dimensions and x
-ny <- 2000
-na <- 1000
-set.seed(10)
-x1 <- matrix(rtruncnorm(ny * na, mean = 15, a = 0, sd = 1.5), nrow = ny)
-
-
-# Add shift to x
-shift <-  matrix(rep(runif(ny, min = -5, max = 20), each = na), ncol = na, byrow = T)
-x1 <- x1 + shift
-
-fp1 <- "~/Documents/SHEDS"
-x1 <- read.csv(file.path(fp1, "sim_dates_winter.csv"))
-xall <- read.csv(file.path(fp1, "sim_dates_summer.csv"))
-x1 <- cbind(x1, xall)
-
-
-x1 <- t(x1)
-
-ny <- nrow(x1)
-na <- ncol(x1)
-
-
-# Set up quantiles and x
-quants1 <- c(0.7, 0.9)
-quants1 <- seq(0.01, 0.99, length = 10)
-quants1 <- seq(0.05, 0.95, by = 0.05)
-
-# quants1 <- seq(0, 1, by = 0.02)
-
-
-# x <- apply(x1, 1, quantile, probs = c(0.1, 0.25, 0.5, 0.75, 0.9))
-x <- apply(x1, 1, quantile, probs = quants1)
-
-
-x <- t(x)
-
-
-# Try and scale?
-mnx <- apply(x, 2, mean)
-x <- sweep(x, 2, mnx)
-sdx <- apply(x, 2, sd)
-x <- sweep(x, 2, sdx, "/")
-
-#Random x
-n1 <- nrow(x)
-n1 <- 2000
-set.seed(21649)
-#x <- matrix(rnorm(n1 * ncol(x)), nrow = n1)
-```
-
-
-
-# Generate beta1
-```{r}
-
-# Get dists
-np <- ncol(x)
-seq1 <- rep(quants1, each = np)
-rows <- matrix(seq1, nrow = np, byrow = T)
-cols <- matrix(seq1, nrow = np, byrow = F)
-Dists <- abs(rows - cols)
-
-
-# Set phi and sigma
-phi <- 2 #1 works
-corr <- exp(-1 / phi * Dists)
-Sigma <- 0.1 * corr
-
-#set.seed(200)
-#s1 <- sample(seq(1, 10000), 1)
-
-# Version that works?
-s1 <- 5021
-
-s1 <- sample(seq(1, 10000), 1)
-print(s1)
-
-s1 <- 8342
-set.seed(s1)
-beta1 <- rmvnorm(1, sigma = Sigma) 
-beta1
-beta1a <- beta1
-
-plot(quants1, beta1a, ylim = c(0, 1))
-```
-
-
-
-
-
-```{r}
-
-beta0 <- 0
-
-# Try for beta1
-# Issues:
-# 1. Low acceptance probability (incorporate correlation?)
-beta1 <- rep(0.1, ncol(x))
-beta1a <- beta1
-
-#lmu <- rowSums(sweep(x, 2, beta1, "*"))
-lmu <- sweep(x, 2, beta1, "*")
-lmu <- rowSums(lmu) * 1/length(beta1)
-#lmu <- apply(lmu, 1, function(x) auc(quants1, x))
-lmu <- lmu + beta0
-
-#phi <- 0
-#beta0 <- 0
-#beta1 <- rep(10, 10)
-#sigma2 <- 1
-#guessvec1 <- list(beta0 = beta0, beta1 = beta1, phi = phi, sigma2 = sigma2)
-```
-
-
-
-```{r run, eval = T}
-
-source("mcmc_corr.R")
-
-# Give guessvec
-guessvec1 <- list()
-guessvec1$beta0 <- 1
-b1 <- t(matrix(rep(1, length(quants1))))
-guessvec1$beta1 <- b1
-guessvec1$phi <- .2
-guessvec1$sigma2 <- .01
-
-# Set seed
-set.seed(10)
-y <- rpois(ny, exp(lmu))
-N <- 10000
-m1 <- mcmcout(y, x, quants = quants1, niter = N, burnin = 0, thin = 1, guessvec = guessvec1)
-save(m1, file = "test_mcmc_howard.RData")
-```
-
-
-```{r}
+```{r mcmcnorm, eval = F}
 
 source("mcmc_corr.R")
 
 # try simulated data
+ts1 <- c("constant", "x2", "high", "low")
+names1 <- paste0("true-sim-norm-mcmc-", ts1, ".RData")
 
-load("sbeta_shift.RData")
-rs1 <- runsim1$simout1[[9]]
-quants1 <- rs1$argvals1
-beta1a <- rs1$betaf(quants1)
+load("true-sim-normal.RData")
+for(i in 1 : length(runsim1$simout1)) {
+  
+  rs1 <- runsim1$simout1[[i]]
+  quants1 <- rs1$argvals1
+  beta1a <- rs1$betaf(quants1)  
+
+  set.seed(10)
+  N <- 20000
+  m1 <- mcmcout(rs1$y1, t(rs1$x1$x1), quants = quants1, niter = N, burnin = 0, thin = 1, type = "norm")
 
 
-set.seed(10)
-N <- 25000
-m1 <- mcmcout(rs1$y1, t(rs1$x1$x1), quants = quants1, niter = N, burnin = 0, thin = 1, type = "norm")
-save(m1, file = "norm_x2_sbeta_shift.RData")
+  save(m1, file = names1[i])
+
+}
+
+
+
+
 
 
 ```
 
 
+
+
+```{r mcmcnorm, eval = F}
+
+source("mcmc_corr.R")
+
+# try simulated data
+ts1 <- c("constant", "x2", "high", "low")
+names1 <- paste0("true-sim-pois-mcmc-", ts1, ".RData")
+
+load("true-sim-poisson.RData")
+for(i in 1 : length(runsim1$simout1)) {
+  
+  rs1 <- runsim1$simout1[[i]]
+  quants1 <- rs1$argvals1
+  beta1a <- rs1$betaf(quants1)  
+
+  set.seed(10)
+  N <- 20000
+  m1 <- mcmcout(rs1$y1, t(rs1$x1$x1), quants = quants1, niter = N, burnin = 0, thin = 1, type = "norm")
+
+
+  save(m1, file = names1[i])
+
+}
+
+```
 
 
 
@@ -210,7 +89,6 @@ save(m1, file = "norm_x2_sbeta_shift.RData")
 
 ## Acceptance probabilities
 ```{r tabs}
-#load("test_mcmc_howard.RData")
 acc1 <- cbind(names(m1$accept), round(m1$accept / N, 2))
 colnames(acc1) <- c("Parameter", "Acceptance Probability")
 rownames(acc1) <- NULL
