@@ -71,8 +71,8 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     a.phi <- hyperp$a.phi
     b.phi <- hyperp$b.phi
   } else {
-    #sd.beta0 <- 100 
-    sd.beta0 <- 0.001
+    sd.beta0 <- 100 
+    #sd.beta0 <- 0.001
     
     # Howard: too diffuse!
     #a.sig <- 0.001
@@ -213,9 +213,9 @@ beta1f <- function(guessvec, beta1.tune, quants) {
 #    s1 <- Sigma[i, -i] %*% iSig
 #    mean1 <- s1 %*% matrix(beta1[-i])
     #sd1 <- sqrt(Sigma[i, i] - s1 %*% Sigma[-i, i])
-    beta1.prop <- rnorm(1, mean = log(beta1[i]), sd = beta1.tune)
+    beta1.prop <- rnorm(1, mean = (beta1[i]), sd = beta1.tune)
    
-    guessvec.new$beta1[i] <- exp(beta1.prop)
+    guessvec.new$beta1[i] <- (beta1.prop)
    
     # Get likelihoods
     llhood.old <- llhood.beta1.out(guessvec, quants)
@@ -257,7 +257,7 @@ sigma2f <- function(guessvec, a.sig, b.sig) {
   C2 <- chol(chol2inv(chol(C1)))
 
   # Find scaled beta1
-  gamma1 <-  t(C2) %*% t(log(beta1)) 
+  gamma1 <-  t(C2) %*% t((beta1)) 
   n <- length(gamma1)
 
   # Sample posterior (normal lhood, gamma prior)
@@ -365,7 +365,7 @@ llhood.beta1 <- function(guessvec) {
   # Get Sigma covariance
   Sigma <- sigma2 * exp(-(1/phi) * Dists)
   # Get normal log likelihood
-  llhood <- dmvnorm(log(beta1), rep(0, length(beta1)), Sigma, log = T)
+  llhood <- dmvnorm((beta1), rep(0, length(beta1)), Sigma, log = T)
   return(llhood)
 }
 
