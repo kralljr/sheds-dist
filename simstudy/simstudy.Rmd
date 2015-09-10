@@ -292,7 +292,7 @@ Assume Y is normally distributed ($\sigma=0.01$) and fit linear regression model
 
 ```{r norm, eval = T, fig.height = 10, fig.width = 15}
 dt1 <- "norm"
-runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1, lb1 = lb1, ub1 = ub1, argvalslr = ag1)                    
+runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1, lb1 = lb1, ub1 = ub1, argvalslr = ag1, beta0 = 6)                    
 
 
 save(runsim1, file = "true-sim-normal.RData")
@@ -354,11 +354,69 @@ gfun(xfull, runsim1$datb, lb1 = lb1, ub1 = ub1)
 
 Assume Y is counts (ED visits) and Poisson distributed and fit log-linear regression models.
 
+
+
+
+
 ```{r pois, eval = T, fig.height = 10, fig.width = 15}
 dt1 <- "pois"
-runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1, lb1 = lb1, ub1 = ub1, argvalslr = ag1 )                    
-gfun(runsim1$xfull, runsim1$datb, lb1 = lb1, ub1 = ub1)
+runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1, lb1 = lb1, ub1 = ub1, argvalslr = ag1 , beta0 = 6)                    
 
 save(runsim1, file = "true-sim-poisson.RData")
+
+
+
+```
+
+```{r mcmc2}
+# Load MCMC
+ts1 <- c("constant", "x2", "high", "low")
+names1 <- paste0("true-sim-pois-mcmc-", ts1, ".RData")
+
+for(i in 1 : 4) {
+  load(names1[i])
+  n <- 10000
+  N <- nrow(m1$beta1)
+  ns <- seq(n, N, by = 10)
+
+  m1ba <- apply(m1$beta1[ns, ], 2, mean)
+  m1bsa <- apply(m1$beta1[ns, ], 2, quantile, probs = c(0.025, 0.975))
+  m1bsa <- t(m1bsa)
+  Reg <- rep("Correlated", nrow(m1bsa))
+  Type1 <- rep(paste("true", ":", ts1[i]), nrow(m1bsa))
+  m1b <- data.frame(argvals2, m1ba, m1bsa, Type1, Reg)
+  colnames(m1b) <- c("X", "Est", "LB", "UB", "Type1", "Reg")
+  
+  m1b$Type1 <- as.character(m1b$Type1)
+
+  m1b$LB2 <- m1b$LB
+  m1b$LB2[m1b$LB2 < lb1] <- -Inf
+
+  m1b$UB2 <- m1b$UB
+  m1b$UB2[m1b$UB2 > ub1] <- Inf
+
+  if(i == 1) {
+    xfull1 <- m1b
+  }else{
+    xfull1 <- full_join(m1b, xfull1)
+  }
+
+}
+
+```
+
+
+
+
+
+
+
+```{r poisplot, eval = T, fig.height = 10, fig.width = 15}
+
+
+xfull <- full_join(runsim1$xfull, xfull1)
+xfull$Reg <- factor(xfull$Reg, levels = c("Univariate", "Multivariate", "Correlated"))
+
+gfun(xfull, runsim1$datb, lb1 = lb1, ub1 = ub1)
 
 ```
