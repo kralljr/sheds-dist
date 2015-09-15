@@ -20,8 +20,8 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     b1 <- t(matrix(rep(1, ncol(x))))
     guessvec$beta1 <- b1
 
-    guessvec$phi <- 0.2
-    guessvec$sigma2 <- 0.01 
+    guessvec$phi <- 100
+    guessvec$sigma2 <- 0.1 
   }
   
   # Add in data
@@ -51,7 +51,7 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     phi.tune <- 1.5
     
     beta0.tune <- 0.001
-    beta1.tune <- .5
+    beta1.tune <- .01
     phi.tune <- 0.5
       
     # From howard 
@@ -113,9 +113,9 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     # Update beta1
     guessvec <- beta1f(guessvec, beta1.tune, quants)
     # Update sigma2
-    guessvec <- sigma2f(guessvec, a.sig, b.sig)
+    #guessvec <- sigma2f(guessvec, a.sig, b.sig)
     # Update phi	  
-    guessvec <- phif(guessvec, a.phi, b.phi, phi.tune)
+    #guessvec <- phif(guessvec, a.phi, b.phi, phi.tune)
    
     #save lth iteration of guesses
     if(i > burnin) {
