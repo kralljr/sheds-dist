@@ -21,7 +21,8 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     guessvec$beta1 <- b1
 
     guessvec$phi <- 100
-    guessvec$sigma2 <- 0.1 
+    guessvec$sigma2 <- 0.001 
+    guessvec$theta <- 0
   }
   
   # Add in data
@@ -70,6 +71,8 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     b.sig <- hyperp$b.sig
     a.phi <- hyperp$a.phi
     b.phi <- hyperp$b.phi
+    mu.theta <- hyperp$mu.theta
+    sig2.theta <- hyperp$sig2.theta
   } else {
     sd.beta0 <- 100 
     #sd.beta0 <- 0.001
@@ -91,6 +94,9 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     # Try lower cor
     #a.phi <- 3
     #b.phi <- 10
+
+    mu.theta <- 0
+    sig2.theta <- 100^2
   }
   
 
@@ -102,6 +108,7 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
   beta1.out <- matrix(nrow = nsamp, ncol = length(guessvec$beta1)) 
   sigma2.out <- vector(, length = nsamp)
   phi.out <- vector(, length = nsamp)
+  theta.out <- vector(, length = nsamp)
 
   # For niter iterations, do MCMC
   # where to save
@@ -115,8 +122,9 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     # Update sigma2
     #guessvec <- sigma2f(guessvec, a.sig, b.sig)
     # Update phi	  
-    #guessvec <- phif(guessvec, a.phi, b.phi, phi.tune)
-   
+    guessvec <- phif(guessvec, a.phi, b.phi, phi.tune)
+    # Update theta
+    guessvec <- thetaf(guessvec, mu.theta, sig2.theta) 
     #save lth iteration of guesses
     if(i > burnin) {
       
@@ -126,6 +134,7 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
         beta1.out[l, ] <- guessvec$beta1
         sigma2.out[l] <- guessvec$sigma2   
         phi.out[l] <- guessvec$phi
+        theta.out[l] <- guessvec$theta
 	l <- l + 1	
       }
 
@@ -145,7 +154,7 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
 
   # Get history of samples
   out <- list(beta0 = beta0.out, beta1 = beta1.out, sigma2 = sigma2.out, 
-    phi = phi.out, accept = accept)
+    phi = phi.out, theta = theta.out, accept = accept)
   return(out)
 
 }
@@ -235,6 +244,41 @@ beta1f <- function(guessvec, beta1.tune, quants) {
  return(guessvec)
 }
 
+
+
+
+
+# Function to sample theta
+#' @param guessvec list if items in mcmc
+#' @param mu.theta prior mean for theta
+#' @param sig2.theta prior variance for theta
+thetaf <- function(guessvec, mu.theta, sig2.theta) {
+   
+  # First get guessvec of importance
+  Dists <- guessvec$Dists
+  phi <- guessvec$phi
+  beta1 <- guessvec$beta1
+  sigma2 <- guessvec$sigma2
+
+  # Get covariance matrix and inverse
+  Sigma1 <- sigma2 * exp(-1/phi * Dists)
+  sSigma1 <- chol2inv(chol(Sigma1))
+
+
+  # Find posterior variance
+  postvar <-  1/ (1 / sig2.theta + sum( sSigma1))
+  
+  # Find posterior mean
+  meanp <- (mu.theta / sig2.theta) + sum(beta1 %*% sSigma1)
+  mean1 <- postvar * meanp
+
+  # Sample new theta
+  ntheta <- rnorm(1, mean1, sqrt(postvar))
+
+  guessvec$theta <- ntheta
+
+  return(guessvec)
+}
 
 
 # Function to sample sigma2
@@ -361,11 +405,12 @@ llhood.beta1 <- function(guessvec) {
   Dists <- guessvec$Dists
   sigma2 <- guessvec$sigma2
   phi <- guessvec$phi
+  theta <- guessvec$theta
 
   # Get Sigma covariance
   Sigma <- sigma2 * exp(-(1/phi) * Dists)
   # Get normal log likelihood
-  llhood <- dmvnorm((beta1), rep(0, length(beta1)), Sigma, log = T)
+  llhood <- dmvnorm((beta1), theta, Sigma, log = T)
   return(llhood)
 }
 
