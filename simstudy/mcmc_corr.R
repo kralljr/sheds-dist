@@ -20,9 +20,9 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     b1 <- t(matrix(rep(1, ncol(x))))
     guessvec$beta1 <- b1
 
-    guessvec$phi <- 100
-    guessvec$sigma2 <- 0.001 
-    guessvec$theta <- 0
+    guessvec$phi <- 1
+    guessvec$sigma2 <- 0.00001 
+    guessvec$theta <- 0.00035698
   }
   
   # Add in data
@@ -52,7 +52,7 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     phi.tune <- 1.5
     
     beta0.tune <- 0.001
-    beta1.tune <- .01
+    beta1.tune <- .0001
     phi.tune <- 0.5
       
     # From howard 
@@ -122,9 +122,9 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     # Update sigma2
     #guessvec <- sigma2f(guessvec, a.sig, b.sig)
     # Update phi	  
-    guessvec <- phif(guessvec, a.phi, b.phi, phi.tune)
+    #guessvec <- phif(guessvec, a.phi, b.phi, phi.tune)
     # Update theta
-    guessvec <- thetaf(guessvec, mu.theta, sig2.theta) 
+    #guessvec <- thetaf(guessvec, mu.theta, sig2.theta) 
     #save lth iteration of guesses
     if(i > burnin) {
       
@@ -410,7 +410,7 @@ llhood.beta1 <- function(guessvec) {
   # Get Sigma covariance
   Sigma <- sigma2 * exp(-(1/phi) * Dists)
   # Get normal log likelihood
-  llhood <- dmvnorm((beta1), theta, Sigma, log = T)
+  llhood <- dmvnorm((beta1), rep(theta, length(beta1)), Sigma, log = T)
   return(llhood)
 }
 
