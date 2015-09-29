@@ -40,7 +40,7 @@ for(i in 1 : length(runsim1$simout1)) {
 
   set.seed(10)
   N <- 20000
-  N <- 50000
+  N <- 100000
   m1 <- mcmcout(rs1$y1, t(rs1$x1$x1), quants = quants1, niter = N, burnin = 0, thin = 1, type = "norm")
 
 
@@ -98,9 +98,9 @@ kable(acc1)
 
 ## Posterior means for beta1
 ```{r tabs2}
-n <- 40000
+n <- 80000
 #N <- length(m1$sigma2)
-ns <- seq(n, N, by = 10)
+ns <- seq(n, N, by = 100)
 m1ba <- apply(m1$beta1[ns, ], 2, mean)
 m1b <- data.frame(round(quants1, 2),  round(m1ba, 4), as.numeric(round(beta1a, 4)))
 colnames(m1b) <- c("Quantile", "Posterior mean", "Truth")
@@ -112,7 +112,8 @@ kable(m1b)
 sigma2 <- mean(m1$sigma2[ns])
 phi <- mean(m1$phi[ns])
 beta0 <- mean(m1$beta0[ns])
-post <- cbind(c("sigma2", "phi", "beta0"), round(c(sigma2, phi, beta0), 4))
+theta <- mean(m1$theta[ns])
+post <- cbind(c("sigma2", "phi", "beta0", "theta"), round(c(sigma2, phi, beta0, theta), 4))
 colnames(post) <- c("Parameter", "Posterior mean")
 kable(post)
 ```
@@ -125,10 +126,10 @@ plot(m1$beta0, ylab = "Beta0", xlab = "Iteration")
 plot(m1$sigma2, ylab = "Sigma2", xlab = "Iteration")
 plot(m1$phi, ylab = "Phi", xlab = "Iteration")
 
-min1 <- 0
-max1 <- 0.5
-plot(m1$beta1[, 1], ylab = "Beta1_1", xlab = "Iteration", ylim = c(min1, max1))
-plot(m1$beta1[, 15], ylab = "Beta1_2", xlab = "Iteration", ylim = c(min1, max1))
+min1 <- -.5
+max1 <- .5
+plot(m1$beta1[ns, 1], ylab = "Beta1_1", xlab = "Iteration", ylim = c(min1, max1))
+plot(m1$beta1[, 19], ylab = "Beta1_2", xlab = "Iteration", ylim = c(min1, max1))
 ```
 
 # Plot of posterior means for beta1
@@ -136,13 +137,12 @@ plot(m1$beta1[, 15], ylab = "Beta1_2", xlab = "Iteration", ylim = c(min1, max1))
 beta1 <- m1$beta1[ns, ] 
 
 
-ymin <- -.1
-ymax <- .2
-
+ymin <- -.01
+ymax <- .05
 #ymin <- -1
 #ymax <- 1
 
-m1ba <- apply(beta1, 2, median)
+m1ba <- apply(beta1, 2, mean)
 plot(m1b[, 1], m1ba, type = "l", ylim = c(ymin, ymax), xlab = "Quantile", ylab = "Beta1")
 legend("topright", legend = c("Post. Mean", "95% PI", "Truth"), lty = c(1, 2, 1), col = c("black", "blue", "red"))
 

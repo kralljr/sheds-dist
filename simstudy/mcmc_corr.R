@@ -21,7 +21,8 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     guessvec$beta1 <- b1
 
     guessvec$phi <- 1
-    guessvec$sigma2 <- 0.00001 
+    # works!
+    guessvec$sigma2 <- 0.000001 
     guessvec$theta <- 0.00035698
   }
   
@@ -120,11 +121,11 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     # Update beta1
     guessvec <- beta1f(guessvec, beta1.tune, quants)
     # Update sigma2
-    #guessvec <- sigma2f(guessvec, a.sig, b.sig)
+    guessvec <- sigma2f(guessvec, a.sig, b.sig)
     # Update phi	  
-    #guessvec <- phif(guessvec, a.phi, b.phi, phi.tune)
+    guessvec <- phif(guessvec, a.phi, b.phi, phi.tune)
     # Update theta
-    #guessvec <- thetaf(guessvec, mu.theta, sig2.theta) 
+    guessvec <- thetaf(guessvec, mu.theta, sig2.theta) 
     #save lth iteration of guesses
     if(i > burnin) {
       
