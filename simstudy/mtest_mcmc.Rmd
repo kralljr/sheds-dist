@@ -125,10 +125,11 @@ kable(post)
 plot(m1$beta0, ylab = "Beta0", xlab = "Iteration")
 plot(m1$sigma2, ylab = "Sigma2", xlab = "Iteration")
 plot(m1$phi, ylab = "Phi", xlab = "Iteration")
+plot(m1$theta, ylab = "Theta", xlab = "Iteration")
 
 min1 <- -.5
 max1 <- .5
-plot(m1$beta1[ns, 1], ylab = "Beta1_1", xlab = "Iteration", ylim = c(min1, max1))
+plot(m1$beta1[, 1], ylab = "Beta1_1", xlab = "Iteration", ylim = c(min1, max1))
 plot(m1$beta1[, 19], ylab = "Beta1_2", xlab = "Iteration", ylim = c(min1, max1))
 ```
 
