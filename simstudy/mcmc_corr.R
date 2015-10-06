@@ -12,7 +12,7 @@
 #' @param burnin length of burnin period
 #' @param thin Amount to thin out
 mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
-  niter = 100, burnin = 0, thin = 1, type = "pois") {
+  niter = 100, burnin = 0, thin = 1, type = "pois", theta = T) {
 
   # Get guessvec
   if(is.null(guessvec)) {
@@ -22,8 +22,11 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
 
     guessvec$phi <- 1
     # works!
-    guessvec$sigma2 <- 0.000001 
     guessvec$theta <- 0.00035698
+    guessvec$sigma2 <- 0.000001
+    if(!theta) { 
+      guessvec$theta <- 0
+    }
   }
   
   # Add in data
@@ -79,11 +82,11 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     #sd.beta0 <- 0.001
     
     # Howard: too diffuse!
-    #a.sig <- 0.001
-    #b.sig <- 0.001
+    a.sig <- 0.001
+    b.sig <- 0.001
     # Worked for me
-    a.sig <- 100
-    b.sig <- 10
+    #a.sig <- 100
+    #b.sig <- 10
 
     # Howard: distance units 1/10??
     #a.phi <- 0.03
@@ -125,7 +128,9 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     # Update phi	  
     guessvec <- phif(guessvec, a.phi, b.phi, phi.tune)
     # Update theta
-    guessvec <- thetaf(guessvec, mu.theta, sig2.theta) 
+    if(theta) {
+      guessvec <- thetaf(guessvec, mu.theta, sig2.theta) 
+    }
     #save lth iteration of guesses
     if(i > burnin) {
       
@@ -249,6 +254,36 @@ beta1f <- function(guessvec, beta1.tune, quants) {
 
 
 
+#' Function to update beta for median
+#'
+#' @param guessvec list of items in mcmc
+#' @param sd.betam standard deviation for normal prior
+#' @param betam.tune tuning parameter for random walk 
+betamf <- function(guessvec, sd.betam, betam.tune, quants) {
+  # Get guesses
+  betam <- guessvec$betam
+  beta1 <- guessvec$beta1
+  
+  guessvec.new <- guessvec 
+  
+  betam.prop <- rnorm(1, mean = (betam), sd = betam.tune)
+   
+  guessvec.new$betam <- (betam.prop)
+   
+  # Get likelihoods
+  llhood.old <- llhood.beta0.out(guessvec, sd.betam, quants)
+  llhood.new <- llhood.beta0.out(guessvec.new, sd.betam, quants)
+
+  # Select old vs. new guess
+  guessvec <- mhstep(guessvec, guessvec.new, llhood.old, llhood.new, j = 2 + length(beta1) + 1 )
+   
+  guessvec.new <- guessvec 
+
+  return(guessvec)
+}
+
+
+
 # Function to sample theta
 #' @param guessvec list if items in mcmc
 #' @param mu.theta prior mean for theta
@@ -293,6 +328,7 @@ sigma2f <- function(guessvec, a.sig, b.sig) {
   phi <- guessvec$phi
   beta1 <- guessvec$beta1
   sigma2 <- guessvec$sigma2
+  theta <- guessvec$theta
 
   # Get correlation,covariance matrix
   C1 <- exp(-1/phi * Dists)
@@ -302,11 +338,13 @@ sigma2f <- function(guessvec, a.sig, b.sig) {
   C2 <- chol(chol2inv(chol(C1)))
 
   # Find scaled beta1
-  gamma1 <-  t(C2) %*% t((beta1)) 
+  gamma1 <-  t(C2) %*% t((beta1))
+  mu1 <- rowSums(t(C2)) * theta
+
   n <- length(gamma1)
 
   # Sample posterior (normal lhood, gamma prior)
-  gam1 <- rgamma(1, a.sig + n / 2, b.sig + sum(gamma1^2)/2)
+  gam1 <- rgamma(1, a.sig + n / 2, b.sig + sum((gamma1 - mu1)^2)/2)
   # Get inverse gamma
   sig2 <- 1 / gam1
   # Update guessvec
