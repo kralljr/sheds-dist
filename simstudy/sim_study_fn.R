@@ -262,21 +262,7 @@ simout <- function(x1, argvals1, betaM, typeb, disttype = "norm", sd1 = 0.01, ar
   rownames(beta2) <- argvalslr
   rownames(beta3) <- argvalslr 
 
-
-  # Fix x
-  # get diffs
-  x1a <- data.frame(t(x1$xall), stringsAsFactors = F)
-  x1a[, 2] <- as.numeric(x1a[, 2])
-  xM <- x1$xM
-  xM <- data.frame(names(xM), xM)
-  colnames(xM) <- c("date", "xM")
-
-  x2 <- left_join(x1a, xM) 
-
-
-
-
-    
+  
 
   #freg1 <- fRegress(y1 ~ x1$xfn)
 
