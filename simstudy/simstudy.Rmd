@@ -52,7 +52,7 @@ The current project is aimed at using distributions of exposure to outdoor pollu
 ```{r argv}
 ns2 <- 4
 
-na1 <- 30
+na1 <- 19
 argvals2 <- seq(0.05, 0.95, length = na1)
 ag1 <- argvals2
 
@@ -76,7 +76,7 @@ To conduct the simulation study, we utilized SHEDS exposures and simulated ED vi
 
 
 
-```{r wtrue, cache = T, fig.height = figh1, fig.width = figw1}
+```{r wtrue, cache = F, fig.height = figh1, fig.width = figw1}
 #Read and get quantiles
 
 # Get all data
@@ -92,8 +92,9 @@ quantsREG <- tapply(xall$pm, xall$date, quantile, probs = ag1)
 quantsREG <- t(sapply(quantsREG, function(x) x))
 
 
-xM  <- tapply(xall$pm, xall$date, median)
+#xM  <- tapply(xall$pm, xall$date, median)
 
+xM  <- tapply(xall$pm, xall$date, mean)
 
 ```
 
@@ -179,6 +180,24 @@ x1$xfn <- getxfn(x1$x1, argvals2, ns1 = ns2)
 x1$basis1 <- x1$xfn$basis1
 x1$xfn <- x1$xfn$xfn
 x1$xM <- xM
+
+# get diffs
+x1a <- data.frame(t(x1$xall), stringsAsFactors = F)
+x1a[, 2] <- as.numeric(x1a[, 2])
+xM <- x1$xM
+xM <- data.frame(names(xM), xM)
+colnames(xM) <- c("date", "xM")
+
+x2 <- left_join(x1a, xM) 
+x2$xM <- as.numeric(x2$xM)
+diff1 <- x2[, 2] - x2[, 3]
+xdiff <- data.frame(x2[, 1], diff1)
+
+
+# Get quantiles
+quants1 <- tapply(xdiff[, 2], xdiff[, 1], quantile, probs = argvals2)
+quants2 <- sapply(quants1, function(x) x)
+x1$xdiff <- quants2
 
 xtrue <- x1
 
@@ -292,7 +311,7 @@ Assume Y is normally distributed ($\sigma=0.01$) and fit linear regression model
 
 ```{r norm, eval = T, fig.height = 10, fig.width = 15}
 dt1 <- "norm"
-runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1, lb1 = lb1, ub1 = ub1, argvalslr = ag1, beta0 = 6)                    
+runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1, std1 = std1,  lb1 = lb1, ub1 = ub1, argvalslr = ag1, beta0 = 6)                    
 
 
 save(runsim1, file = "true-sim-normal.RData")
@@ -301,7 +320,7 @@ save(runsim1, file = "true-sim-normal.RData")
 
 
 
-```{r mcmc1}
+```{r mcmc1, eval = F}
 # Load MCMC
 ts1 <- c("constant", "x2", "high", "low")
 names1 <- paste0("true-sim-norm-mcmc-", ts1, ".RData")
@@ -340,7 +359,7 @@ for(i in 1 : 4) {
 ```
 
 
-```{r normplot, eval = T, fig.height = 10, fig.width = 15}
+```{r normplot, eval = F, fig.height = 10, fig.width = 15}
 
 
 xfull <- full_join(runsim1$xfull, xfull1)
@@ -360,7 +379,7 @@ Assume Y is counts (ED visits) and Poisson distributed and fit log-linear regres
 
 ```{r pois, eval = T, fig.height = 10, fig.width = 15}
 dt1 <- "pois"
-runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1, lb1 = lb1, ub1 = ub1, argvalslr = ag1 , beta0 = 6)                    
+runsim1 <- runsim(x1use, xs1, ts1, cn, scaleb = scaleb, val1 = shift1, disttype1 = dt1, std1 = std1, lb1 = lb1, ub1 = ub1, argvalslr = ag1 , beta0 = 6)                    
 
 save(runsim1, file = "true-sim-poisson.RData")
 
@@ -368,7 +387,7 @@ save(runsim1, file = "true-sim-poisson.RData")
 
 ```
 
-```{r mcmc2}
+```{r mcmc2, eval = F}
 # Load MCMC
 ts1 <- c("constant", "x2", "high", "low")
 names1 <- paste0("true-sim-pois-mcmc-", ts1, ".RData")
@@ -411,7 +430,7 @@ for(i in 1 : 4) {
 
 
 
-```{r poisplot, eval = T, fig.height = 10, fig.width = 15}
+```{r poisplot, eval = F, fig.height = 10, fig.width = 15}
 
 
 xfull <- full_join(runsim1$xfull, xfull1)
