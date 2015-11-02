@@ -23,7 +23,7 @@ summary(as.vector(cor(xs[, -wh1])))
 
 # what about rescaling?
 xall <- t(rs1$x1$xall)
-xall <- data.frame(xall)
+xall <- data.frame(xall, stringsAsFactors = F)
 xall[, 2] <- as.numeric(xall[, 2])
 mn <- tapply(xall[, 2], xall[, 1], mean)
 
