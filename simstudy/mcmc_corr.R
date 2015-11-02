@@ -12,11 +12,12 @@
 #' @param burnin length of burnin period
 #' @param thin Amount to thin out
 mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
-  niter = 100, burnin = 0, thin = 1, type = "pois", theta = T) {
+  niter = 100, burnin = 0, thin = 1, type = "pois", theta = T, xmean = NULL) {
 
   # Get guessvec
   if(is.null(guessvec)) {
     guessvec$beta0 <- 1
+    guessvec$betam <- 0
     b1 <- t(matrix(rep(1, ncol(x))))
     guessvec$beta1 <- b1
 
@@ -32,6 +33,7 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
   # Add in data
   guessvec$y <- y
   guessvec$x <- x
+  guessvec$xmean <- xmean
 
   # Add in dist
   guessvec$type <- type
@@ -47,6 +49,7 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
   # Get tuning parameters
   if(!is.null(tunes)) {
     beta0.tune <- tunes$beta0.tune
+    betam.tune <- tunes$betam.tune
     beta1.tune <- tunes$beta1.tune
     phi.tune <- tunes$phi.tune
   } else{
@@ -56,6 +59,7 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     phi.tune <- 1.5
     
     beta0.tune <- 0.001
+    betam.tune <- 0.001
     beta1.tune <- .0001
     phi.tune <- 0.5
       
@@ -66,11 +70,12 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
   }
 
   # Keep track of acceptance
-  guessvec$accept <- c(0, 0, rep(0, ncol(x)))
+  guessvec$accept <- c(0, 0, 0, rep(0, ncol(x)))
 
   # Get hyperparameters
   if(!is.null(hyperp)) {
     sd.beta0 <- hyperp$sd.beta0
+    sd.betam <- hyperp$sd.betam
     a.sig <- hyperp$a.sig
     b.sig <- hyperp$b.sig
     a.phi <- hyperp$a.phi
@@ -79,6 +84,7 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
     sig2.theta <- hyperp$sig2.theta
   } else {
     sd.beta0 <- 100 
+    sd.betam <- 100
     #sd.beta0 <- 0.001
     
     # Howard: too diffuse!
@@ -109,6 +115,7 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
   # Find number of output samples
   nsamp <- ceiling((niter - burnin) / thin)
   beta0.out <- vector(, length = nsamp)
+  betam.out <- vector(, length = nsamp)
   beta1.out <- matrix(nrow = nsamp, ncol = length(guessvec$beta1)) 
   sigma2.out <- vector(, length = nsamp)
   phi.out <- vector(, length = nsamp)
@@ -121,6 +128,10 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
   for (i in 1 : niter) {
     # Update beta0
     guessvec <- beta0f(guessvec, sd.beta0, beta0.tune, quants)
+    # Update betam
+    if(!is.null(xmean)) {
+      guessvec <- betamf(guessvec, sd.betam, betam.tune, quants)
+    }
     # Update beta1
     guessvec <- beta1f(guessvec, beta1.tune, quants)
     # Update sigma2
@@ -137,6 +148,7 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
       # If multiple of thin, save output
       if(((k - 1) %% thin) == 0) { 
         beta0.out[l] <- guessvec$beta0
+        betam.out[l] <- guessvec$betam
         beta1.out[l, ] <- guessvec$beta1
         sigma2.out[l] <- guessvec$sigma2   
         phi.out[l] <- guessvec$phi
@@ -159,7 +171,7 @@ mcmcout <- function(y, x, quants, guessvec = NULL, tunes = NULL, hyperp = NULL,
 
 
   # Get history of samples
-  out <- list(beta0 = beta0.out, beta1 = beta1.out, sigma2 = sigma2.out, 
+  out <- list(beta0 = beta0.out, betam = betam.out, beta1 = beta1.out, sigma2 = sigma2.out, 
     phi = phi.out, theta = theta.out, accept = accept)
   return(out)
 
@@ -195,6 +207,33 @@ beta0f <- function(guessvec, sd.beta0, beta0.tune, quants) {
 }
 
 
+
+
+#' Function to update betam
+#'
+#' @param guessvec list of items in mcmc
+#' @param sd.betam standard deviation for normal prior
+#' @param betam.tune tuning parameter for random walk 
+betamf <- function(guessvec, sd.betam, betam.tune, quants) {
+  # Get guesses
+  betam <- guessvec$betam
+
+  # Propose new beta
+  betam.prop <- rnorm(1, betam, betam.tune)
+
+  # Get new guess
+  guessvec.new <- guessvec
+  guessvec.new$betam <- betam.prop
+
+  # Get likelihoods: same lhood as beta0
+  llhood.old <- llhood.beta0(guessvec, sd.betam, quants)
+  llhood.new <- llhood.beta0(guessvec.new, sd.betam, quants)
+
+  # Select old vs. new guess
+  guessvec <- mhstep(guessvec, guessvec.new, llhood.old, llhood.new, j = 2 + length(guessvec$beta1) + 1)
+  
+  return(guessvec)
+}
 
 
 #' Function to update beta1
@@ -251,36 +290,6 @@ beta1f <- function(guessvec, beta1.tune, quants) {
 }
 
 
-
-
-
-#' Function to update beta for median
-#'
-#' @param guessvec list of items in mcmc
-#' @param sd.betam standard deviation for normal prior
-#' @param betam.tune tuning parameter for random walk 
-betamf <- function(guessvec, sd.betam, betam.tune, quants) {
-  # Get guesses
-  betam <- guessvec$betam
-  beta1 <- guessvec$beta1
-  
-  guessvec.new <- guessvec 
-  
-  betam.prop <- rnorm(1, mean = (betam), sd = betam.tune)
-   
-  guessvec.new$betam <- (betam.prop)
-   
-  # Get likelihoods
-  llhood.old <- llhood.beta0.out(guessvec, sd.betam, quants)
-  llhood.new <- llhood.beta0.out(guessvec.new, sd.betam, quants)
-
-  # Select old vs. new guess
-  guessvec <- mhstep(guessvec, guessvec.new, llhood.old, llhood.new, j = 2 + length(beta1) + 1 )
-   
-  guessvec.new <- guessvec 
-
-  return(guessvec)
-}
 
 
 
