@@ -74,8 +74,8 @@ for(i in 1 : length(runsim1$simout1)) {
   beta1a <- rs1$betaf(quants1)  
 
   set.seed(10)
-  N <- 20000
-  m1 <- mcmcout(rs1$y1, t(rs1$x1$x1), quants = quants1, niter = N, burnin = 0, thin = 1, type = "norm")
+  N <- 100000
+  m1 <- mcmcout(rs1$y1, t(rs1$x1$x1), quants = quants1, niter = N, burnin = 0, thin = 1, type = "pois", theta = F)
 
 
   save(m1, file = names1[i])
