@@ -76,7 +76,18 @@ for(i in 1 : length(runsim1$simout1)) {
 
   set.seed(10)
   N <- 100000
-  m1 <- mcmcout(rs1$y1, t(rs1$x1$x1), quants = quants1, niter = N, burnin = 0, thin = 1, type = "pois", theta = F, xmean = rs1$x1$xM)
+
+  xall <- rmvnorm(1461, mean = rep(0, 1000))
+  x1 <- apply(xall, 1, quantile, probs = quants1)
+  x1 <- t(x1)
+  linfun <- sweep(x1, 2, beta1a, "*")
+  mu1 <- exp(6 + 1/(length(quants1)) * linfun)
+  y <- rpois(length(mu1), mu1)
+
+  m1 <- mcmcout(y, x1, quants = quants1, niter = N, burnin = 0, thin = 1, type = "pois", theta = F)
+
+
+  m1 <- mcmcout(rs1$y1, t(rs1$x1$x1), quants = quants1, niter = N, burnin = 0, thin = 1, type = "pois", theta = F)
 
 
   save(m1, file = names1[i])
