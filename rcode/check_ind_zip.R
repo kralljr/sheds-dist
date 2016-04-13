@@ -35,7 +35,13 @@ selpop <- selpop[complete.cases(selpop), ]
 
 ####### Get files of data
 lf <- list.files()
-lf <- lf[which(substr(lf, 1, 4) == "file")]
+# for PM
+#lf <- lf[which(substr(lf, 1, 4) == "file")]
+cn1 <- c("ID", "date", "zip", "pm")
+
+# for EC
+lf <- lf[which(substr(lf, 1, 7) == "EC_file")]
+cn1 <- c("ID", "date", "zip", "EC")
 ######################################
 
 
@@ -55,7 +61,9 @@ lf <- lf[which(substr(lf, 1, 4) == "file")]
 set.seed(15630)
 
 nrows <- vector()
-zips <- as.numeric(substr(lf, 6, 10))
+#zips <- as.numeric(substr(lf, 6, 10))
+zips <- as.numeric(substr(lf, 9, 13))
+
 weird1 <- 0
 undates1 <- vector()
 keeps <- c(0, 0, 0, 0)
@@ -69,7 +77,7 @@ for(i in 1 : length(lf)) {
 	
 	# Read in data and create column names
 	dat <- read.csv(lf[i], header = F)
-	colnames(dat) <- c("ID", "date", "zip", "pm")
+	colnames(dat) <- cn1
 	
 	# # Fix date
 	dat$date <- as.numeric(as.Date(dat$date, format = "%d%b%y"))
@@ -101,15 +109,15 @@ for(i in 1 : length(lf)) {
 	if(length(pop) != 0) {
 		pop1[i] <- pop
 	
-		# Divide the data by date and randomly sample pop rows
-		# s1 <- lapply(split(dat, dat[, "date"]), function(x) {
-			# # randomly shuffle the rows
-			# x <- x[sample(nrow(x), pop), ]
-			# rownames(x) <- paste0(seq(1, nrow(x)), x[, 2])
-			# x
-		# }) %>% bind_rows %>% as.matrix
+		#Divide the data by date and randomly sample pop rows
+		s1 <- lapply(split(dat, dat[, "date"]), function(x) {
+			# randomly shuffle the rows
+			x <- x[sample(nrow(x), pop), ]
+			rownames(x) <- paste0(seq(1, nrow(x)), x[, 2])
+			x
+		}) %>% bind_rows %>% as.matrix
 				
-		# keeps <- rbind(keeps, s1)		
+		keeps <- rbind(keeps, s1)		
 	
 	}
 	rm(dat, s1)
@@ -118,10 +126,13 @@ for(i in 1 : length(lf)) {
 }
 
 keeps <- keeps[-1, ]
-colnames(keeps) <- c("ID", "date", "zip", "pm")
+colnames(keeps) <- cn1
 keeps <- data.frame(keeps)
 keeps[, "date"] <- as.Date(keeps[, "date"], origin = "1970-01-01")
 #write.csv(keeps, file = "SHEDS_pm_atl.csv", row.names = F)
+
+write.csv(keeps, file = "SHEDS_ec_atl.csv", row.names = F)
+
 
 #keeps <- read.csv("SHEDS_pm_atl.csv", stringsAsFactors = F)
 
